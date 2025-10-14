@@ -4,6 +4,7 @@
 // 관련 파일: app/(auth)/actions.ts, lib/supabase/server.ts
 
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from './logout-button'
 
@@ -23,12 +24,28 @@ export default async function NotesPage() {
     redirect('/login')
   }
 
+  // 온보딩 상태 확인
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('onboarding_completed')
+    .eq('user_id', user.id)
+    .single()
+
+  // 프로필이 없거나 온보딩 미완료 시 온보딩 페이지로 리디렉션
+  if (!profileError && profile && !profile.onboarding_completed) {
+    redirect('/onboarding')
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="text-center space-y-6 max-w-2xl">
-        <div className="text-6xl mb-4">
+        <Link 
+          href="/onboarding"
+          className="inline-block text-6xl mb-4 transition-all hover:scale-110 hover:opacity-80 active:scale-95"
+          title="💡 클릭하면 온보딩 페이지를 다시 볼 수 있어요!"
+        >
           🌸💛✨
-        </div>
+        </Link>
         <h1 className="text-4xl font-bold mb-4">AI 메모장 🌼</h1>
         <p className="text-xl text-muted-foreground mb-4">
           환영합니다, {user.email}님! 💖

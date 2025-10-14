@@ -114,7 +114,25 @@ export async function signUpWithEmail(formData: SignUpFormData) {
     return { success: true, requiresEmailVerification: true }
   }
 
-  // 회원가입 성공 (세션 존재)
+  // 회원가입 성공 (세션 존재) - user_profiles 레코드 생성
+  if (data.user) {
+    try {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: data.user.id,
+          onboarding_completed: false,
+        })
+
+      if (profileError) {
+        console.error('Failed to create user profile:', profileError)
+        // 프로필 생성 실패는 회원가입을 막지 않음 (나중에 생성 가능)
+      }
+    } catch (profileInsertError) {
+      console.error('Error creating user profile:', profileInsertError)
+    }
+  }
+
   return { success: true, requiresEmailVerification: false }
 }
 
@@ -296,6 +314,41 @@ export async function updatePassword(formData: PasswordUpdateData) {
   }
 
   // 비밀번호 변경 성공
+  return { success: true }
+}
+
+// 온보딩 완료 처리
+export async function completeOnboarding() {
+  const supabase = await createClient()
+
+  // 현재 사용자 확인
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return {
+      error: { message: '인증이 필요합니다' },
+    }
+  }
+
+  // user_profiles 업데이트
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('Failed to complete onboarding:', error)
+    return {
+      error: { message: '온보딩 완료 처리에 실패했습니다' },
+    }
+  }
+
   return { success: true }
 }
 
