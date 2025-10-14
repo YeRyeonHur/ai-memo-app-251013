@@ -16,6 +16,13 @@ import { NoteListSkeleton } from './note-card-skeleton'
 import { SortSelect } from './sort-select'
 import { EmptyState } from './empty-state'
 import { ErrorState } from './error-state'
+import { DeleteAllDialog } from './delete-all-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface PageProps {
   searchParams: Promise<{ page?: string; sort?: string }>
@@ -95,11 +102,30 @@ export default async function NotesPage({ searchParams }: PageProps) {
       <div className="container mx-auto px-4 py-8">
         {/* 헤더 영역 */}
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">내 노트 📝</h1>
-            <p className="text-muted-foreground">환영합니다, {user.email}님!</p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">내 노트 📝</h1>
+              <div className="flex items-center gap-2">
+                <p className="text-muted-foreground">환영합니다, {user.email}님!</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="/onboarding">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          ℹ️
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>온보딩 페이지</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
+            <DeleteAllDialog />
             <Link href="/notes/new">
               <Button>✍️ 새 노트 작성</Button>
             </Link>
@@ -116,16 +142,6 @@ export default async function NotesPage({ searchParams }: PageProps) {
         <Suspense fallback={<NoteListSkeleton />}>
           <NotesList page={page} sortBy={sortBy} />
         </Suspense>
-
-        {/* 하단 링크 */}
-        <div className="mt-8 text-center">
-          <Link
-            href="/onboarding"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            온보딩 페이지 다시 보기
-          </Link>
-        </div>
       </div>
     </div>
   )

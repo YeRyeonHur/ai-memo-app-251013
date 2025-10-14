@@ -47,6 +47,12 @@ interface DeleteNoteResult {
   error?: string
 }
 
+interface DeleteAllNotesResult {
+  success: boolean
+  error?: string
+  deletedCount?: number
+}
+
 interface CreateSampleNotesResult {
   success: boolean
   error?: string
@@ -367,6 +373,45 @@ export async function deleteNote(noteId: string): Promise<DeleteNoteResult> {
       success: false,
       error: '노트 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
     }
+  }
+}
+
+/**
+ * 모든 노트 삭제 (현재 사용자의 노트만)
+ * @returns DeleteAllNotesResult - 성공 여부와 삭제된 노트 개수
+ */
+export async function deleteAllNotes(): Promise<DeleteAllNotesResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. 현재 사용자의 모든 노트 삭제
+    const deletedNotes = await db
+      .delete(notes)
+      .where(eq(notes.userId, user.id))
+      .returning()
+
+    // 3. 캐시 무효화
+    revalidatePath('/notes')
+
+    return {
+      success: true,
+      deletedCount: deletedNotes.length,
+    }
+  } catch (error) {
+    console.error('노트 전체 삭제 실패:', error)
+    return { success: false, error: '노트 삭제에 실패했습니다.' }
   }
 }
 

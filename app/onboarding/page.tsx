@@ -63,7 +63,7 @@ export default function OnboardingPage() {
       if (result?.error) {
         toast.error(result.error.message)
       } else {
-        toast.info('💡 노트 페이지 상단 이모티콘을 클릭하면 다시 볼 수 있어요! 🌸💛')
+        toast.info('언제든 ℹ️ 버튼으로 다시 볼 수 있어요!')
         router.push('/notes')
         router.refresh()
       }
