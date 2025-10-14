@@ -24,7 +24,27 @@ vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
+}))
+
+// Supabase client 모킹
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: vi.fn(() => ({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+        error: null,
+      }),
+    },
+  })),
+}))
+
+// LocalStorage draft functions 모킹
+vi.mock('@/lib/utils/draft-storage', () => ({
+  saveDraft: vi.fn(() => true),
+  loadDraft: vi.fn(() => null),
+  clearDraft: vi.fn(() => true),
 }))
 
 describe('NoteForm 컴포넌트', () => {

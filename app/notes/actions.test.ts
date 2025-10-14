@@ -1080,3 +1080,139 @@ describe('deleteNote Server Action', () => {
   })
 })
 
+describe('createSampleNotes Server Action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('인증된 사용자가 샘플 노트 3개를 성공적으로 생성한다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    const mockUser = { id: 'test-user-id', email: 'test@example.com' }
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: mockUser },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockSampleNotes = [
+      { id: 'note-1', userId: mockUser.id, title: '🌟 AI 메모장 사용 가이드' },
+      { id: 'note-2', userId: mockUser.id, title: '📝 텍스트 메모 작성하기' },
+      { id: 'note-3', userId: mockUser.id, title: '🎙️ 음성 메모 활용법 (향후 제공 예정)' },
+    ]
+
+    const mockInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue(mockSampleNotes),
+      }),
+    })
+
+    mockDb.insert = mockInsert
+
+    const { createSampleNotes } = await import('./actions')
+    const result = await createSampleNotes()
+
+    expect(result.success).toBe(true)
+    expect(result.count).toBe(3)
+    expect(mockInsert).toHaveBeenCalledTimes(1)
+  })
+
+  it('비인증 사용자는 샘플 노트를 생성할 수 없다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const mockCreateClient = vi.mocked(createClient)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { message: 'Not authenticated' },
+        }),
+      },
+    } as any)
+
+    const { createSampleNotes } = await import('./actions')
+    const result = await createSampleNotes()
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('인증되지 않은 사용자입니다. 다시 로그인해주세요.')
+  })
+
+  it('생성된 노트의 제목이 정확한지 확인한다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    const mockUser = { id: 'test-user-id', email: 'test@example.com' }
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: mockUser },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let capturedValues: any[] = []
+
+    const mockInsert = vi.fn().mockReturnValue({
+      values: vi.fn((vals: any[]) => {
+        capturedValues = vals
+        return {
+          returning: vi.fn().mockResolvedValue(
+            vals.map((v: any, idx: number) => ({ ...v, id: `note-${idx + 1}` }))
+          ),
+        }
+      }),
+    })
+
+    mockDb.insert = mockInsert
+
+    const { createSampleNotes } = await import('./actions')
+    await createSampleNotes()
+
+    expect(capturedValues).toHaveLength(3)
+    expect(capturedValues[0].title).toBe('🌟 AI 메모장 사용 가이드')
+    expect(capturedValues[1].title).toBe('📝 텍스트 메모 작성하기')
+    expect(capturedValues[2].title).toBe('🎙️ 음성 메모 활용법 (향후 제공 예정)')
+  })
+
+  it('DB 삽입 실패 시 에러를 반환한다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockRejectedValue(new Error('DB Error')),
+      }),
+    })
+
+    mockDb.insert = mockInsert
+
+    const { createSampleNotes } = await import('./actions')
+    const result = await createSampleNotes()
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('샘플 노트 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
+  })
+})
+

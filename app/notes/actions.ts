@@ -47,6 +47,12 @@ interface DeleteNoteResult {
   error?: string
 }
 
+interface CreateSampleNotesResult {
+  success: boolean
+  error?: string
+  count?: number
+}
+
 export type SortOption = 'newest' | 'oldest' | 'title' | 'updated'
 
 export async function createNote(
@@ -360,6 +366,102 @@ export async function deleteNote(noteId: string): Promise<DeleteNoteResult> {
     return {
       success: false,
       error: '노트 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    }
+  }
+}
+
+const SAMPLE_NOTES = [
+  {
+    title: '🌟 AI 메모장 사용 가이드',
+    content: `AI 메모장에 오신 것을 환영합니다!
+
+이 메모장은 여러분의 생각과 아이디어를 쉽고 빠르게 기록하고, AI가 자동으로 정리해주는 스마트한 도구입니다.
+
+주요 기능:
+- 📝 텍스트 메모: 언제 어디서나 빠르게 생각을 기록하세요
+- 🎙️ 음성 메모: 말로 하면 자동으로 텍스트로 변환됩니다 (향후 제공)
+- 🤖 AI 요약: 긴 메모도 핵심만 간추려 정리해드립니다 (향후 제공)
+- 🏷️ 자동 태깅: AI가 관련 태그를 자동으로 추천합니다 (향후 제공)
+- 🔍 스마트 검색: 태그와 내용으로 빠르게 검색하세요 (향후 제공)
+- 📤 데이터 내보내기: 언제든 내 데이터를 다운로드할 수 있습니다 (향후 제공)
+
+이 샘플 노트들은 언제든 삭제하실 수 있습니다!`,
+  },
+  {
+    title: '📝 텍스트 메모 작성하기',
+    content: `텍스트 메모는 AI 메모장의 가장 기본적인 기능입니다.
+
+작성 방법:
+1. 우측 상단의 "새 노트 작성" 버튼을 클릭하세요
+2. 제목과 본문을 입력하세요
+3. 저장 버튼을 누르면 완료!
+
+수정 방법:
+1. 노트를 클릭하여 상세 페이지로 이동
+2. "수정" 버튼 클릭
+3. 내용을 수정하면 자동으로 저장됩니다
+
+팁:
+- 제목은 간결하게, 본문은 자유롭게 작성하세요
+- 긴 메모도 걱정 없어요. 나중에 AI가 요약해드립니다!
+- 자주 쓰는 단어는 나중에 태그로 자동 추천됩니다`,
+  },
+  {
+    title: '🎙️ 음성 메모 활용법 (향후 제공 예정)',
+    content: `음성 메모 기능은 곧 제공될 예정입니다!
+
+음성 메모를 사용하면:
+- 타이핑 없이 말로 빠르게 메모할 수 있어요
+- 회의나 강의 중에도 손쉽게 기록 가능
+- 음성이 자동으로 텍스트로 변환됩니다
+
+사용 시나리오:
+- 운전 중 떠오른 아이디어를 안전하게 기록
+- 회의록을 빠르게 작성
+- 학습 내용을 복습하면서 요약
+
+기대해주세요! 🌟`,
+  },
+]
+
+export async function createSampleNotes(): Promise<CreateSampleNotesResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. 샘플 노트 데이터 준비
+    const sampleNotesData = SAMPLE_NOTES.map((note) => ({
+      userId: user.id,
+      title: note.title,
+      content: note.content,
+    }))
+
+    // 3. Drizzle ORM으로 3개 노트 일괄 삽입
+    const insertedNotes = await db.insert(notes).values(sampleNotesData).returning()
+
+    // 4. 캐시 무효화
+    revalidatePath('/notes')
+
+    return {
+      success: true,
+      count: insertedNotes.length,
+    }
+  } catch (error) {
+    console.error('샘플 노트 생성 실패:', error)
+    return {
+      success: false,
+      error: '샘플 노트 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
     }
   }
 }

@@ -14,6 +14,8 @@ import { NoteCard } from './note-card'
 import { Pagination } from './pagination'
 import { NoteListSkeleton } from './note-card-skeleton'
 import { SortSelect } from './sort-select'
+import { EmptyState } from './empty-state'
+import { ErrorState } from './error-state'
 
 interface PageProps {
   searchParams: Promise<{ page?: string; sort?: string }>
@@ -29,35 +31,13 @@ async function NotesList({
   const result = await getNotes(page, sortBy)
 
   if (!result.success || !result.notes || !result.pagination) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-semibold">노트를 불러오지 못했습니다</h2>
-          <p className="text-muted-foreground">{result.error}</p>
-          <Button onClick={() => window.location.reload()}>다시 시도</Button>
-        </div>
-      </div>
-    )
+    return <ErrorState error={result.error} />
   }
 
   const { notes, pagination } = result
 
   if (notes.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-6xl mb-4">📝</div>
-          <h2 className="text-2xl font-semibold">아직 노트가 없습니다</h2>
-          <p className="text-muted-foreground">
-            새 노트를 작성하여 생각을 기록해보세요!
-          </p>
-          <Link href="/notes/new">
-            <Button className="mt-4">첫 노트 작성하기</Button>
-          </Link>
-        </div>
-      </div>
-    )
+    return <EmptyState />
   }
 
   return (
