@@ -1,7 +1,7 @@
-// app/(auth)/signup/page.tsx
-// 회원가입 페이지 - 이메일/비밀번호 입력 폼
-// 폼 검증 및 Server Action 호출을 통한 회원가입 처리
-// 관련 파일: app/(auth)/actions.ts, lib/supabase/client.ts
+// app/(auth)/login/page.tsx
+// 로그인 페이지 - 이메일/비밀번호 입력 폼
+// 폼 검증 및 Server Action 호출을 통한 로그인 처리
+// 관련 파일: app/(auth)/actions.ts, lib/supabase/server.ts
 
 'use client'
 
@@ -11,7 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { signUpWithEmail } from '../actions'
+import { signInWithEmail } from '../actions'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -34,36 +34,26 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 
 // 클라이언트 사이드 폼 검증 스키마
-const signUpFormSchema = z
-  .object({
-    email: z.string().email({ message: '유효한 이메일 주소를 입력해주세요' }),
-    password: z
-      .string()
-      .min(8, { message: '비밀번호는 최소 8자 이상이어야 합니다' })
-      .regex(/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/, {
-        message: '비밀번호는 특수문자를 1개 이상 포함해야 합니다',
-      }),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: '비밀번호가 일치하지 않습니다',
-    path: ['confirmPassword'],
-  })
+const signInFormSchema = z.object({
+  email: z.string().email({ message: '유효한 이메일 주소를 입력해주세요' }),
+  password: z
+    .string()
+    .min(8, { message: '비밀번호는 최소 8자 이상이어야 합니다' }),
+})
 
-type SignUpFormValues = z.infer<typeof signUpFormSchema>
+type SignInFormValues = z.infer<typeof signInFormSchema>
 
-export default function SignUpPage() {
+export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const form = useForm<SignUpFormValues>({
-    resolver: zodResolver(signUpFormSchema),
+  const form = useForm<SignInFormValues>({
+    resolver: zodResolver(signInFormSchema),
     defaultValues: {
       email: '',
       password: '',
-      confirmPassword: '',
     },
   })
 
@@ -97,11 +87,11 @@ export default function SignUpPage() {
     }
   }, [searchParams])
 
-  async function onSubmit(values: SignUpFormValues) {
+  async function onSubmit(values: SignInFormValues) {
     setIsLoading(true)
 
     try {
-      const result = await signUpWithEmail({
+      const result = await signInWithEmail({
         email: values.email,
         password: values.password,
       })
@@ -119,21 +109,13 @@ export default function SignUpPage() {
           }
         }
       } else if (result?.success) {
-        // 회원가입 성공
-        if (result.requiresEmailVerification) {
-          toast.success('회원가입이 완료되었습니다. 이메일을 확인해주세요.', {
-            duration: 5000,
-          })
-          // 폼 리셋
-          form.reset()
-        } else {
-          toast.success('회원가입이 완료되었습니다')
-          router.push('/notes')
-        }
+        // 로그인 성공
+        toast.success('로그인되었습니다')
+        router.push('/notes')
       }
     } catch (error) {
-      toast.error('회원가입 중 오류가 발생했습니다')
-      console.error('Sign up error:', error)
+      toast.error('로그인 중 오류가 발생했습니다')
+      console.error('Sign in error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -159,9 +141,9 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">회원가입</CardTitle>
+          <CardTitle className="text-2xl font-bold">로그인</CardTitle>
           <CardDescription>
-            이메일과 비밀번호로 계정을 생성하세요
+            이메일과 비밀번호로 로그인하세요
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -178,6 +160,7 @@ export default function SignUpPage() {
                         type="email"
                         placeholder="example@email.com"
                         disabled={isLoading}
+                        autoComplete="email"
                         {...field}
                       />
                     </FormControl>
@@ -194,8 +177,9 @@ export default function SignUpPage() {
                     <FormControl>
                       <Input
                         type="password"
-                        placeholder="최소 8자, 특수문자 1개 이상"
+                        placeholder="비밀번호를 입력하세요"
                         disabled={isLoading}
+                        autoComplete="current-password"
                         {...field}
                       />
                     </FormControl>
@@ -203,35 +187,25 @@ export default function SignUpPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>비밀번호 확인</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="비밀번호를 다시 입력하세요"
-                        disabled={isLoading}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-muted-foreground hover:text-primary"
+                >
+                  비밀번호를 잊으셨나요?
+                </Link>
+              </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '회원가입 중...' : '회원가입'}
+                {isLoading ? '로그인 중...' : '로그인'}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-center text-sm text-muted-foreground">
-            이미 계정이 있으신가요?{' '}
-            <Link href="/login" className="font-medium underline">
-              로그인
+            계정이 없으신가요?{' '}
+            <Link href="/signup" className="font-medium underline">
+              회원가입
             </Link>
           </div>
         </CardFooter>

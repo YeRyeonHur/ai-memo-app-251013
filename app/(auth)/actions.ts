@@ -67,8 +67,19 @@ export async function signUpWithEmail(formData: SignUpFormData) {
   })
 
   if (error) {
+    // 디버깅을 위한 로깅
+    console.error('Signup error:', error)
+    
     // 에러 메시지 한국어 변환
     let errorMessage = '회원가입에 실패했습니다'
+    
+    // Email Provider 비활성화 체크
+    if (error.code === 'email_provider_disabled' || error.message.includes('Email logins are disabled')) {
+      errorMessage = 'Supabase에서 이메일 로그인이 비활성화되어 있습니다. Authentication → Providers → Email을 활성화해주세요.'
+      return {
+        error: { message: errorMessage },
+      }
+    }
     
     // 중복 이메일 체크 (다양한 케이스 처리)
     if (
@@ -105,5 +116,90 @@ export async function signUpWithEmail(formData: SignUpFormData) {
 
   // 회원가입 성공 (세션 존재)
   return { success: true, requiresEmailVerification: false }
+}
+
+// 로그인 스키마 정의
+const signInSchema = z.object({
+  email: z.string().email({ message: '유효한 이메일 주소를 입력해주세요' }),
+  password: z
+    .string()
+    .min(8, { message: '비밀번호는 최소 8자 이상이어야 합니다' }),
+})
+
+export type SignInFormData = z.infer<typeof signInSchema>
+
+export async function signInWithEmail(formData: SignInFormData) {
+  // 입력값 검증
+  const validatedFields = signInSchema.safeParse(formData)
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.flatten().fieldErrors,
+    }
+  }
+
+  const { email, password } = validatedFields.data
+
+  const supabase = await createClient()
+
+  // Supabase Auth를 통한 로그인
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    // 디버깅을 위한 로깅
+    console.error('Login error:', error)
+    
+    // 에러 메시지 한국어 변환
+    let errorMessage = '로그인에 실패했습니다'
+
+    if (error.code === 'email_provider_disabled' || error.message.includes('Email logins are disabled')) {
+      errorMessage = 'Supabase에서 이메일 로그인이 비활성화되어 있습니다. Authentication → Providers → Email을 활성화해주세요.'
+    } else if (
+      error.message.includes('Invalid login credentials') ||
+      error.message.includes('invalid credentials')
+    ) {
+      errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다'
+    } else if (error.message.includes('Email not confirmed')) {
+      errorMessage = '이메일 인증이 필요합니다. 이메일을 확인해주세요'
+    } else if (error.message.includes('network')) {
+      errorMessage = '네트워크 연결을 확인해주세요'
+    }
+
+    // 개발 환경에서는 원본 에러도 함께 표시
+    if (process.env.NODE_ENV === 'development') {
+      errorMessage = `${errorMessage} (${error.message})`
+    }
+
+    return {
+      error: { message: errorMessage },
+    }
+  }
+
+  // 로그인 성공 - 세션 확인
+  if (!data.session) {
+    return {
+      error: { message: '로그인에 실패했습니다. 다시 시도해주세요.' },
+    }
+  }
+
+  // 로그인 성공
+  return { success: true }
+}
+
+// 로그아웃
+export async function signOut() {
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    return {
+      error: { message: '로그아웃에 실패했습니다' },
+    }
+  }
+
+  return { success: true }
 }
 
