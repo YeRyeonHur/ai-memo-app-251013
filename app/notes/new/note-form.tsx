@@ -35,6 +35,7 @@ export function NoteForm() {
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
   const [savedDraft, setSavedDraft] = useState<ReturnType<typeof loadDraft>>(null)
+  const [isNoteSaved, setIsNoteSaved] = useState(false) // 노트 저장 성공 플래그
 
   // 디바운스된 제목과 본문 (1초)
   const debouncedTitle = useDebounce(title, 1000)
@@ -84,6 +85,8 @@ export function NoteForm() {
     if (!userId) return
 
     const handleBeforeUnload = () => {
+      // 노트가 이미 저장되었으면 임시 저장하지 않음
+      if (isNoteSaved) return
       // 제목이나 본문이 하나라도 있으면 저장
       if (title.trim() || content.trim()) {
         saveDraft(userId, title, content)
@@ -96,12 +99,14 @@ export function NoteForm() {
     // 컴포넌트가 언마운트될 때 (페이지 이동 시)
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      // 노트가 이미 저장되었으면 임시 저장하지 않음
+      if (isNoteSaved) return
       // 제목이나 본문이 하나라도 있으면 저장
       if (title.trim() || content.trim()) {
         saveDraft(userId, title, content)
       }
     }
-  }, [userId, title, content])
+  }, [userId, title, content, isNoteSaved])
 
   const validateForm = (): boolean => {
     const newErrors: { title?: string; content?: string } = {}
@@ -133,6 +138,8 @@ export function NoteForm() {
       const result = await createNote(title, content)
 
       if (result.success) {
+        // 노트 저장 성공 플래그 설정
+        setIsNoteSaved(true)
         // 임시 저장 데이터 삭제
         if (userId) {
           clearDraft(userId)

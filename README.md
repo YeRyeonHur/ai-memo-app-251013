@@ -38,15 +38,30 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 # Database Configuration (Drizzle ORM)
 # Supabase 대시보드 > Project Settings > Database > Connection string (Transaction)에서 복사
 DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@[PROJECT-REF].supabase.co:6543/postgres?pgbouncer=true&connection_limit=1
+
+# Google Gemini API Configuration
+# AI 기반 노트 요약 및 태그 생성 기능에 사용
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
-3. 데이터베이스 마이그레이션 적용
+3. Gemini API 키 발급
+
+AI 요약 및 태깅 기능을 사용하려면 Google Gemini API 키가 필요합니다:
+
+1. [Google AI Studio](https://aistudio.google.com/app/apikey) 접속
+2. "Create API key" 클릭
+3. 프로젝트 선택 또는 새 프로젝트 생성
+4. 생성된 API 키를 `.env.local`의 `GEMINI_API_KEY`에 입력
+
+> **참고**: Gemini API 키는 서버 사이드에서만 사용되며, 클라이언트에 노출되지 않습니다.
+
+4. 데이터베이스 마이그레이션 적용
 
 ```bash
 pnpm db:push
 ```
 
-4. 개발 서버 실행
+5. 개발 서버 실행
 
 ```bash
 pnpm dev
@@ -76,6 +91,13 @@ ai-memo-hands-on/
 │   └── ui/              # shadcn/ui 컴포넌트
 ├── lib/
 │   ├── supabase/        # Supabase 클라이언트
+│   ├── gemini/          # Gemini API 클라이언트 및 유틸리티
+│   │   ├── client.ts    # API 클라이언트 초기화
+│   │   ├── prompts.ts   # 요약/태그 프롬프트 생성
+│   │   ├── types.ts     # TypeScript 타입 정의
+│   │   ├── errors.ts    # 에러 핸들링
+│   │   ├── utils.ts     # 유틸리티 함수
+│   │   └── __tests__/   # 단위 테스트
 │   └── utils.ts         # 유틸리티 함수
 ├── docs/                # 프로젝트 문서
 └── drizzle/             # 데이터베이스 스키마 및 마이그레이션
@@ -117,6 +139,103 @@ pnpm db:check       # 마이그레이션 충돌 검사
 3. `pnpm db:push` - 개발 DB에 적용
 4. `pnpm db:studio` - Drizzle Studio로 확인
 
+## 🤖 Gemini API 설정
+
+### API 키 발급
+
+1. [Google AI Studio](https://aistudio.google.com/app/apikey) 접속
+2. Google 계정으로 로그인
+3. "Create API key" 버튼 클릭
+4. 기존 Google Cloud 프로젝트 선택 또는 새 프로젝트 생성
+5. 생성된 API 키 복사
+
+### 환경변수 설정
+
+`.env.local` 파일에 다음 항목을 추가하세요:
+
+```bash
+# Google Gemini API
+GEMINI_API_KEY=your-api-key-here
+```
+
+### 사용 예시
+
+#### 기본 텍스트 생성
+
+```typescript
+import { generateText } from '@/lib/gemini/client'
+
+// 텍스트 생성
+const response = await generateText('안녕하세요', {
+  temperature: 0.7,
+  maxOutputTokens: 1024,
+})
+
+console.log(response.text)
+```
+
+#### 노트 요약 생성
+
+```typescript
+import { generateSummary, getSummary } from '@/app/notes/ai-actions'
+
+// 노트 요약 생성 (Server Action)
+const result = await generateSummary(noteId)
+
+if (result.success) {
+  console.log('요약:', result.summary)
+  console.log('캐시됨:', result.cached) // 5분 이내 생성된 요약은 재사용
+} else {
+  console.error('에러:', result.error)
+}
+
+// 요약 조회
+const summaryResult = await getSummary(noteId)
+
+if (summaryResult.success && summaryResult.summary) {
+  console.log('요약:', summaryResult.summary.summary)
+  console.log('생성일:', summaryResult.summary.createdAt)
+}
+```
+
+### API 연결 테스트
+
+터미널에서 다음 명령어로 Gemini API 연결을 테스트할 수 있습니다:
+
+```bash
+pnpm test lib/gemini
+```
+
+### 주요 기능
+
+- **텍스트 생성**: `generateText()` - 프롬프트 기반 텍스트 생성
+- **연결 테스트**: `testGeminiConnection()` - API 키 검증 및 연결 테스트
+- **프롬프트 검증**: `validatePrompt()` - 입력 프롬프트 유효성 검사
+- **토큰 추정**: `estimateTokenCount()` - 텍스트의 대략적인 토큰 수 계산
+- **노트 요약 생성**: `generateSummary()` - 노트 내용을 3-6개 불릿 포인트로 자동 요약
+- **요약 조회**: `getSummary()` - 노트의 최신 요약 조회
+
+### 에러 핸들링
+
+Gemini API는 다음 에러 타입을 지원합니다:
+
+- `API_KEY_MISSING`: API 키 누락
+- `API_KEY_INVALID`: API 키 유효하지 않음
+- `NETWORK_ERROR`: 네트워크 연결 실패
+- `RATE_LIMIT_ERROR`: 요청 한도 초과
+- `TOKEN_LIMIT_ERROR`: 토큰 제한 초과 (8,000 토큰)
+- `TIMEOUT_ERROR`: 요청 시간 초과
+
+모든 에러는 `parseGeminiError()` 함수를 통해 사용자 친화적인 한국어 메시지로 변환됩니다.
+
+### 제한사항
+
+- **토큰 제한**: 입력 + 출력 합계 8,000 토큰
+- **모델**: `gemini-2.0-flash` (빠른 응답 속도)
+- **타임아웃**: 기본 10초 (환경변수로 설정 가능)
+
+자세한 내용은 [lib/gemini](./lib/gemini) 디렉토리의 코드와 테스트를 참조하세요.
+
 ## ✅ 개발 진행 상황
 
 ### 완료된 기능
@@ -133,6 +252,10 @@ pnpm db:check       # 마이그레이션 충돌 검사
 - [x] **Epic 2: 노트 관리**
   - [x] Story 2.0: Drizzle ORM 환경 세팅 및 스키마 정의
 
+- [x] **Epic 4: AI 요약 및 태깅 (진행 중)**
+  - [x] Story 4.1: Gemini API 설정 및 연동
+  - [x] Story 4.2: 노트 내용 기반 자동 요약 생성
+
 ### 진행 예정
 
 - [ ] Epic 2: 노트 관리
@@ -141,6 +264,9 @@ pnpm db:check       # 마이그레이션 충돌 검사
   - [ ] 기타...
 - [ ] Epic 3: 음성 메모
 - [ ] Epic 4: AI 요약 및 태깅
+  - [ ] Story 4.3: 노트 자동 태그 생성
+  - [ ] Story 4.4: AI 처리 상태 표시
+  - [ ] 기타...
 - [ ] Epic 5: 검색 및 필터링
 - [ ] Epic 6: 데이터 내보내기
 

@@ -15,6 +15,13 @@
       "when": 1760422009243,
       "tag": "0001_loving_tyger_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760426262579,
+      "tag": "0002_shiny_slapstick",
+      "breakpoints": true
     }
   ]
 }
