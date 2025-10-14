@@ -173,7 +173,7 @@ export async function getNotes(
         break
       case 'title':
         // 이모티콘 제거 후 정렬 (제목 앞의 이모티콘과 공백 제거)
-        orderByClause = sql`REGEXP_REPLACE(${notes.title}, '^[^\\w가-힣a-zA-Z0-9]+\\s*', '', 'g') ASC`
+        orderByClause = sql`REGEXP_REPLACE(${notes.title}, '^[^\\w가-힣]+\\s*', '', 'g') ASC`
         break
       case 'updated':
         orderByClause = desc(notes.updatedAt)
