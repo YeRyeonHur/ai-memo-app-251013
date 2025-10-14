@@ -203,3 +203,99 @@ export async function signOut() {
   return { success: true }
 }
 
+// 비밀번호 재설정 요청 스키마
+const passwordResetRequestSchema = z.object({
+  email: z.string().email({ message: '유효한 이메일 주소를 입력해주세요' }),
+})
+
+export type PasswordResetRequestData = z.infer<typeof passwordResetRequestSchema>
+
+export async function requestPasswordReset(formData: PasswordResetRequestData) {
+  // 입력값 검증
+  const validatedFields = passwordResetRequestSchema.safeParse(formData)
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.flatten().fieldErrors,
+    }
+  }
+
+  const { email } = validatedFields.data
+
+  const supabase = await createClient()
+
+  // Supabase Auth를 통한 비밀번호 재설정 이메일 발송
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password`,
+  })
+
+  if (error) {
+    // 디버깅을 위한 로깅
+    console.error('Password reset request error:', error)
+
+    // 보안상 이메일 존재 여부를 노출하지 않음
+    // 모든 경우에 성공 메시지 반환
+  }
+
+  // 보안을 위해 이메일 존재 여부와 관계없이 동일한 성공 메시지 반환
+  return { success: true }
+}
+
+// 비밀번호 업데이트 스키마
+const passwordUpdateSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, { message: '비밀번호는 최소 8자 이상이어야 합니다' })
+      .regex(/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/, {
+        message: '비밀번호는 특수문자를 1개 이상 포함해야 합니다',
+      }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: '비밀번호가 일치하지 않습니다',
+    path: ['confirmPassword'],
+  })
+
+export type PasswordUpdateData = z.infer<typeof passwordUpdateSchema>
+
+export async function updatePassword(formData: PasswordUpdateData) {
+  // 입력값 검증
+  const validatedFields = passwordUpdateSchema.safeParse(formData)
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.flatten().fieldErrors,
+    }
+  }
+
+  const { password } = validatedFields.data
+
+  const supabase = await createClient()
+
+  // Supabase Auth를 통한 비밀번호 업데이트
+  const { error } = await supabase.auth.updateUser({
+    password,
+  })
+
+  if (error) {
+    // 디버깅을 위한 로깅
+    console.error('Password update error:', error)
+
+    let errorMessage = '비밀번호 변경에 실패했습니다'
+
+    if (error.message.includes('session')) {
+      errorMessage = '세션이 만료되었습니다. 다시 시도해주세요'
+    } else if (error.message.includes('network')) {
+      errorMessage = '네트워크 연결을 확인해주세요'
+    }
+
+    return {
+      error: { message: errorMessage },
+    }
+  }
+
+  // 비밀번호 변경 성공
+  return { success: true }
+}
+
