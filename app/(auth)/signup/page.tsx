@@ -158,10 +158,32 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
+        <div className="px-6 pt-6 pb-2">
+          <Link 
+            href="/" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="mr-1"
+            >
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            홈으로
+          </Link>
+        </div>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">회원가입</CardTitle>
+          <CardTitle className="text-2xl font-bold">🌻 회원가입 💖</CardTitle>
           <CardDescription>
-            이메일과 비밀번호로 계정을 생성하세요
+            이메일과 비밀번호로 계정을 생성하세요 🎀
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -222,14 +244,14 @@ export default function SignUpPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '회원가입 중...' : '회원가입'}
+                {isLoading ? '회원가입 중... 🌻' : '🌻 회원가입'}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-center text-sm text-muted-foreground">
-            이미 계정이 있으신가요?{' '}
+            이미 계정이 있으신가요? 💛{' '}
             <Link href="/login" className="font-medium underline">
               로그인
             </Link>

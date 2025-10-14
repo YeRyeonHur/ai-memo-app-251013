@@ -51,9 +51,9 @@ export default function LogoutAllPage() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>✅ 로그아웃 완료</CardTitle>
+            <CardTitle>✅ 로그아웃 완료 🌸</CardTitle>
             <CardDescription>
-              모든 세션과 쿠키가 삭제되었습니다.
+              모든 세션과 쿠키가 삭제되었습니다 💛
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -61,14 +61,14 @@ export default function LogoutAllPage() {
               onClick={() => router.push('/login')} 
               className="w-full"
             >
-              로그인 페이지로 이동
+              🌸 로그인 페이지로 이동
             </Button>
             <Button 
               onClick={() => router.push('/')} 
               variant="outline"
               className="w-full"
             >
-              홈으로 이동
+              🏠 홈으로 이동
             </Button>
           </CardContent>
         </Card>
@@ -82,7 +82,7 @@ export default function LogoutAllPage() {
         <CardContent className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="mt-4 text-sm text-muted-foreground">로그아웃 중...</p>
+            <p className="mt-4 text-sm text-muted-foreground">로그아웃 중... 🌸</p>
           </div>
         </CardContent>
       </Card>

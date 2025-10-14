@@ -25,15 +25,23 @@ export default async function NotesPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">AI 메모장</h1>
-        <p className="text-muted-foreground mb-4">
-          환영합니다, {user.email}님!
+      <div className="text-center space-y-6 max-w-2xl">
+        <div className="text-6xl mb-4">
+          🌸💛✨
+        </div>
+        <h1 className="text-4xl font-bold mb-4">AI 메모장 🌼</h1>
+        <p className="text-xl text-muted-foreground mb-4">
+          환영합니다, {user.email}님! 💖
         </p>
-        <p className="text-sm text-muted-foreground mb-6">
-          노트 기능은 추후 구현될 예정입니다.
-        </p>
+        <div className="bg-card/50 backdrop-blur-sm rounded-lg p-6 border border-border/50 mb-6">
+          <p className="text-sm text-muted-foreground">
+            ✨ 노트 기능은 추후 구현될 예정입니다 ✨
+          </p>
+        </div>
         <LogoutButton />
+        <div className="text-4xl mt-8 opacity-50">
+          🌻 🦋 🍯 🎀
+        </div>
       </div>
     </div>
   )

@@ -38,7 +38,7 @@ export function LogoutButton() {
 
   return (
     <Button onClick={handleLogout} disabled={isLoading} variant="outline">
-      {isLoading ? '로그아웃 중...' : '로그아웃'}
+      {isLoading ? '로그아웃 중... 🌸' : '👋 로그아웃'}
     </Button>
   )
 }

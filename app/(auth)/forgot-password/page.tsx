@@ -73,12 +73,34 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
+        <div className="px-6 pt-6 pb-2">
+          <Link 
+            href="/" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="mr-1"
+            >
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            홈으로
+          </Link>
+        </div>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">비밀번호 재설정</CardTitle>
+          <CardTitle className="text-2xl font-bold">🔑 비밀번호 재설정 🌼</CardTitle>
           <CardDescription>
             {emailSent
-              ? '이메일을 확인해주세요'
-              : '가입하신 이메일 주소를 입력해주세요'}
+              ? '이메일을 확인해주세요 💌'
+              : '가입하신 이메일 주소를 입력해주세요 ✨'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,7 +138,7 @@ export default function ForgotPasswordPage() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? '전송 중...' : '재설정 링크 보내기'}
+                  {isLoading ? '전송 중... 💌' : '💌 재설정 링크 보내기'}
                 </Button>
               </form>
             </Form>
@@ -125,7 +147,7 @@ export default function ForgotPasswordPage() {
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-center text-sm text-muted-foreground">
             <Link href="/login" className="font-medium underline">
-              로그인 페이지로 돌아가기
+              🌸 로그인 페이지로 돌아가기
             </Link>
           </div>
           {emailSent && (
@@ -134,7 +156,7 @@ export default function ForgotPasswordPage() {
               className="w-full"
               onClick={() => setEmailSent(false)}
             >
-              다시 보내기
+              🔄 다시 보내기
             </Button>
           )}
         </CardFooter>

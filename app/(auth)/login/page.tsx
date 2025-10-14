@@ -140,10 +140,32 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
+        <div className="px-6 pt-6 pb-2">
+          <Link 
+            href="/" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="mr-1"
+            >
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            홈으로
+          </Link>
+        </div>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">로그인</CardTitle>
+          <CardTitle className="text-2xl font-bold">🌸 로그인 💛</CardTitle>
           <CardDescription>
-            이메일과 비밀번호로 로그인하세요
+            이메일과 비밀번호로 로그인하세요 ✨
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -192,18 +214,18 @@ export default function LoginPage() {
                   href="/forgot-password"
                   className="text-sm text-muted-foreground hover:text-primary"
                 >
-                  비밀번호를 잊으셨나요?
+                  🔑 비밀번호를 잊으셨나요?
                 </Link>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '로그인 중...' : '로그인'}
+                {isLoading ? '로그인 중... 🌸' : '🌸 로그인'}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-center text-sm text-muted-foreground">
-            계정이 없으신가요?{' '}
+            계정이 없으신가요? 🌼{' '}
             <Link href="/signup" className="font-medium underline">
               회원가입
             </Link>
