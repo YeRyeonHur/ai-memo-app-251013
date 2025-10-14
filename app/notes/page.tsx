@@ -125,6 +125,9 @@ export default async function NotesPage({ searchParams }: PageProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/notes/trash">
+              <Button variant="outline">🗑️ 휴지통</Button>
+            </Link>
             <DeleteAllDialog />
             <Link href="/notes/new">
               <Button>✍️ 새 노트 작성</Button>

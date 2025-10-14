@@ -10,7 +10,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
 import { notes, type Note } from '@/drizzle/schema'
-import { eq, desc, asc, count, and } from 'drizzle-orm'
+import { eq, desc, asc, count, and, isNull, isNotNull, sql } from 'drizzle-orm'
 
 interface CreateNoteResult {
   success: boolean
@@ -57,6 +57,18 @@ interface CreateSampleNotesResult {
   success: boolean
   error?: string
   count?: number
+}
+
+interface RestoreNoteResult {
+  success: boolean
+  error?: string
+  note?: Note
+}
+
+interface EmptyTrashResult {
+  success: boolean
+  error?: string
+  deletedCount?: number
 }
 
 export type SortOption = 'newest' | 'oldest' | 'title' | 'updated'
@@ -160,7 +172,8 @@ export async function getNotes(
         orderByClause = asc(notes.createdAt)
         break
       case 'title':
-        orderByClause = asc(notes.title)
+        // 이모티콘 제거 후 정렬 (제목 앞의 이모티콘과 공백 제거)
+        orderByClause = sql`REGEXP_REPLACE(${notes.title}, '^[^\\w가-힣a-zA-Z0-9]+\\s*', '', 'g') ASC`
         break
       case 'updated':
         orderByClause = desc(notes.updatedAt)
@@ -171,17 +184,17 @@ export async function getNotes(
         break
     }
 
-    // 4. 전체 노트 개수 조회
+    // 4. 전체 노트 개수 조회 (삭제되지 않은 노트만)
     const [{ value: totalNotes }] = await db
       .select({ value: count() })
       .from(notes)
-      .where(eq(notes.userId, user.id))
+      .where(and(eq(notes.userId, user.id), isNull(notes.deletedAt)))
 
-    // 5. 노트 목록 조회 (페이지네이션 + 정렬)
+    // 5. 노트 목록 조회 (페이지네이션 + 정렬, 삭제되지 않은 노트만)
     const notesList = await db
       .select()
       .from(notes)
-      .where(eq(notes.userId, user.id))
+      .where(and(eq(notes.userId, user.id), isNull(notes.deletedAt)))
       .orderBy(orderByClause)
       .limit(pageSize)
       .offset(offset)
@@ -224,14 +237,20 @@ export async function getNoteById(noteId: string): Promise<GetNoteByIdResult> {
       }
     }
 
-    // 2. 노트 단건 조회 (id와 user_id로 필터링)
+    // 2. 노트 단건 조회 (id와 user_id로 필터링, 삭제되지 않은 노트만)
     const [note] = await db
       .select()
       .from(notes)
-      .where(and(eq(notes.id, noteId), eq(notes.userId, user.id)))
+      .where(
+        and(
+          eq(notes.id, noteId),
+          eq(notes.userId, user.id),
+          isNull(notes.deletedAt)
+        )
+      )
       .limit(1)
 
-    // 3. 노트가 없으면 null 반환
+    // 3. 노트가 없거나 삭제된 노트면 null 반환
     if (!note) {
       return {
         success: true,
@@ -294,7 +313,7 @@ export async function updateNote(
       }
     }
 
-    // 3. Drizzle ORM으로 노트 업데이트 (id와 user_id로 필터링)
+    // 3. Drizzle ORM으로 노트 업데이트 (id와 user_id로 필터링, 삭제되지 않은 노트만)
     const [updatedNote] = await db
       .update(notes)
       .set({
@@ -302,7 +321,13 @@ export async function updateNote(
         content: content.trim(),
         updatedAt: new Date(),
       })
-      .where(and(eq(notes.id, noteId), eq(notes.userId, user.id)))
+      .where(
+        and(
+          eq(notes.id, noteId),
+          eq(notes.userId, user.id),
+          isNull(notes.deletedAt)
+        )
+      )
       .returning()
 
     // 4. 노트가 없거나 권한이 없으면 에러 반환
@@ -330,6 +355,11 @@ export async function updateNote(
   }
 }
 
+/**
+ * 노트 Soft Delete (휴지통으로 이동)
+ * @param noteId - 삭제할 노트 ID
+ * @returns DeleteNoteResult - 성공 여부
+ */
 export async function deleteNote(noteId: string): Promise<DeleteNoteResult> {
   try {
     // 1. 인증 사용자 확인
@@ -346,10 +376,17 @@ export async function deleteNote(noteId: string): Promise<DeleteNoteResult> {
       }
     }
 
-    // 2. Drizzle ORM으로 노트 삭제 (id와 user_id로 필터링)
+    // 2. Soft Delete: deleted_at 필드 업데이트 (id와 user_id로 필터링)
     const [deletedNote] = await db
-      .delete(notes)
-      .where(and(eq(notes.id, noteId), eq(notes.userId, user.id)))
+      .update(notes)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(
+          eq(notes.id, noteId),
+          eq(notes.userId, user.id),
+          isNull(notes.deletedAt) // 이미 삭제된 노트는 제외
+        )
+      )
       .returning()
 
     // 3. 노트가 없거나 권한이 없으면 에러 반환
@@ -362,6 +399,7 @@ export async function deleteNote(noteId: string): Promise<DeleteNoteResult> {
 
     // 4. 캐시 무효화
     revalidatePath('/notes')
+    revalidatePath('/notes/trash')
     revalidatePath(`/notes/${noteId}`)
 
     return {
@@ -412,6 +450,227 @@ export async function deleteAllNotes(): Promise<DeleteAllNotesResult> {
   } catch (error) {
     console.error('노트 전체 삭제 실패:', error)
     return { success: false, error: '노트 삭제에 실패했습니다.' }
+  }
+}
+
+/**
+ * 휴지통에서 노트 복원
+ * @param noteId - 복원할 노트 ID
+ * @returns RestoreNoteResult - 성공 여부 및 복원된 노트
+ */
+export async function restoreNote(noteId: string): Promise<RestoreNoteResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. 노트 복원: deleted_at을 NULL로 변경
+    const [restoredNote] = await db
+      .update(notes)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(notes.id, noteId),
+          eq(notes.userId, user.id),
+          isNotNull(notes.deletedAt) // 삭제된 노트만 복원 가능
+        )
+      )
+      .returning()
+
+    // 3. 노트가 없거나 권한이 없으면 에러 반환
+    if (!restoredNote) {
+      return {
+        success: false,
+        error: '노트를 찾을 수 없거나 복원 권한이 없습니다.',
+      }
+    }
+
+    // 4. 캐시 무효화
+    revalidatePath('/notes')
+    revalidatePath('/notes/trash')
+
+    return {
+      success: true,
+      note: restoredNote,
+    }
+  } catch (error) {
+    console.error('노트 복원 실패:', error)
+    return {
+      success: false,
+      error: '노트 복원에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    }
+  }
+}
+
+/**
+ * 휴지통에서 노트 영구 삭제
+ * @param noteId - 영구 삭제할 노트 ID
+ * @returns DeleteNoteResult - 성공 여부
+ */
+export async function permanentlyDeleteNote(
+  noteId: string
+): Promise<DeleteNoteResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. 데이터베이스에서 완전히 삭제 (삭제된 노트만)
+    const [deletedNote] = await db
+      .delete(notes)
+      .where(
+        and(
+          eq(notes.id, noteId),
+          eq(notes.userId, user.id),
+          isNotNull(notes.deletedAt) // 삭제된 노트만 영구 삭제 가능
+        )
+      )
+      .returning()
+
+    // 3. 노트가 없거나 권한이 없으면 에러 반환
+    if (!deletedNote) {
+      return {
+        success: false,
+        error: '노트를 찾을 수 없거나 삭제 권한이 없습니다.',
+      }
+    }
+
+    // 4. 캐시 무효화
+    revalidatePath('/notes/trash')
+
+    return {
+      success: true,
+    }
+  } catch (error) {
+    console.error('노트 영구 삭제 실패:', error)
+    return {
+      success: false,
+      error: '노트 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    }
+  }
+}
+
+/**
+ * 휴지통 비우기 (모든 삭제된 노트 영구 삭제)
+ * @returns EmptyTrashResult - 성공 여부 및 삭제된 노트 개수
+ */
+export async function emptyTrash(): Promise<EmptyTrashResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. 현재 사용자의 모든 삭제된 노트 영구 삭제
+    const deletedNotes = await db
+      .delete(notes)
+      .where(and(eq(notes.userId, user.id), isNotNull(notes.deletedAt)))
+      .returning()
+
+    // 3. 캐시 무효화
+    revalidatePath('/notes/trash')
+
+    return {
+      success: true,
+      deletedCount: deletedNotes.length,
+    }
+  } catch (error) {
+    console.error('휴지통 비우기 실패:', error)
+    return { success: false, error: '휴지통 비우기에 실패했습니다.' }
+  }
+}
+
+/**
+ * 삭제된 노트 목록 조회 (휴지통)
+ * @param page - 페이지 번호 (기본값: 1)
+ * @returns GetNotesResult - 삭제된 노트 목록 및 페이지네이션 정보
+ */
+export async function getDeletedNotes(
+  page: number = 1
+): Promise<GetNotesResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. 페이지 번호 유효성 검증
+    const pageNumber = Math.max(1, Math.floor(page))
+    const pageSize = 12 // 휴지통은 12개씩 표시
+    const offset = (pageNumber - 1) * pageSize
+
+    // 3. 삭제된 노트 개수 조회
+    const [{ value: totalNotes }] = await db
+      .select({ value: count() })
+      .from(notes)
+      .where(and(eq(notes.userId, user.id), isNotNull(notes.deletedAt)))
+
+    // 4. 삭제된 노트 목록 조회 (최신 삭제순 정렬)
+    const notesList = await db
+      .select()
+      .from(notes)
+      .where(and(eq(notes.userId, user.id), isNotNull(notes.deletedAt)))
+      .orderBy(desc(notes.deletedAt))
+      .limit(pageSize)
+      .offset(offset)
+
+    // 5. 페이지네이션 메타데이터 계산
+    const totalPages = Math.ceil(totalNotes / pageSize)
+
+    return {
+      success: true,
+      notes: notesList,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages,
+        totalNotes,
+        pageSize,
+      },
+    }
+  } catch (error) {
+    console.error('휴지통 조회 실패:', error)
+    return {
+      success: false,
+      error: '휴지통을 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+    }
   }
 }
 

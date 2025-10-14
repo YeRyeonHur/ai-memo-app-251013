@@ -13,10 +13,12 @@ export const notes = pgTable(
     content: text('content').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => ({
     userIdIdx: index('notes_user_id_idx').on(table.userId),
     createdAtIdx: index('notes_created_at_idx').on(table.createdAt),
+    deletedAtIdx: index('notes_deleted_at_idx').on(table.deletedAt),
   })
 );
 

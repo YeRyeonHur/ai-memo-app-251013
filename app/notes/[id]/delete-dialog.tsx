@@ -39,7 +39,7 @@ export function DeleteDialog({ noteId, noteTitle }: DeleteDialogProps) {
       const result = await deleteNote(noteId)
 
       if (result.success) {
-        toast.success('노트가 삭제되었습니다')
+        toast.success('노트가 휴지통으로 이동되었습니다')
         router.push('/notes')
         router.refresh()
       } else {
@@ -61,10 +61,9 @@ export function DeleteDialog({ noteId, noteTitle }: DeleteDialogProps) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>정말 이 노트를 삭제하시겠습니까?</AlertDialogTitle>
+          <AlertDialogTitle>이 노트를 휴지통으로 이동하시겠습니까?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{noteTitle}" 노트를 삭제하면 되돌릴 수 없습니다. 정말
-            삭제하시겠습니까?
+            "{noteTitle}" 노트가 휴지통으로 이동됩니다. 휴지통에서 복원하거나 영구 삭제할 수 있습니다.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

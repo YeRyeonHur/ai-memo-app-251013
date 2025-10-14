@@ -950,7 +950,7 @@ describe('deleteNote Server Action', () => {
     expect(result.error).toBe('인증되지 않은 사용자입니다. 다시 로그인해주세요.')
   })
 
-  it('인증된 사용자는 자신의 노트를 삭제할 수 있다', async () => {
+  it('인증된 사용자는 자신의 노트를 soft delete할 수 있다', async () => {
     const { createClient } = await import('@/lib/supabase/server')
     const { db } = await import('@/lib/db')
     const mockCreateClient = vi.mocked(createClient)
@@ -963,6 +963,7 @@ describe('deleteNote Server Action', () => {
       content: 'Test Content',
       createdAt: new Date(),
       updatedAt: new Date(),
+      deletedAt: new Date(),
     }
 
     mockCreateClient.mockResolvedValue({
@@ -974,19 +975,21 @@ describe('deleteNote Server Action', () => {
       },
     } as any)
 
-    const mockDelete = vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([deletedNote]),
+    const mockUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([deletedNote]),
+        }),
       }),
     })
 
-    mockDb.delete = mockDelete
+    mockDb.update = mockUpdate
 
     const { deleteNote } = await import('./actions')
     const result = await deleteNote('test-note-id')
 
     expect(result.success).toBe(true)
-    expect(mockDelete).toHaveBeenCalled()
+    expect(mockUpdate).toHaveBeenCalled()
   })
 
   it('다른 사용자의 노트는 삭제할 수 없다', async () => {
@@ -1004,13 +1007,15 @@ describe('deleteNote Server Action', () => {
       },
     } as any)
 
-    const mockDelete = vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([]),
+    const mockUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       }),
     })
 
-    mockDb.delete = mockDelete
+    mockDb.update = mockUpdate
 
     const { deleteNote } = await import('./actions')
     const result = await deleteNote('other-user-note-id')
@@ -1034,13 +1039,15 @@ describe('deleteNote Server Action', () => {
       },
     } as any)
 
-    const mockDelete = vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([]),
+    const mockUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       }),
     })
 
-    mockDb.delete = mockDelete
+    mockDb.update = mockUpdate
 
     const { deleteNote } = await import('./actions')
     const result = await deleteNote('non-existent-note-id')
@@ -1049,7 +1056,7 @@ describe('deleteNote Server Action', () => {
     expect(result.error).toBe('노트를 찾을 수 없거나 삭제 권한이 없습니다.')
   })
 
-  it('DB 삭제 실패 시 에러를 반환한다', async () => {
+  it('DB 업데이트 실패 시 에러를 반환한다', async () => {
     const { createClient } = await import('@/lib/supabase/server')
     const { db } = await import('@/lib/db')
     const mockCreateClient = vi.mocked(createClient)
@@ -1064,13 +1071,15 @@ describe('deleteNote Server Action', () => {
       },
     } as any)
 
-    const mockDelete = vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockRejectedValue(new Error('DB Error')),
+    const mockUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('DB Error')),
+        }),
       }),
     })
 
-    mockDb.delete = mockDelete
+    mockDb.update = mockUpdate
 
     const { deleteNote } = await import('./actions')
     const result = await deleteNote('test-note-id')

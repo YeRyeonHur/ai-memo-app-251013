@@ -6,7 +6,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { truncateText } from '@/lib/utils'
@@ -23,11 +23,26 @@ export function NoteCard({ note }: NoteCardProps) {
     router.push(`/notes/${note.id}`)
   }
 
-  // 상대 시간 표시
-  const relativeTime = formatDistanceToNow(new Date(note.createdAt), {
-    addSuffix: true,
-    locale: ko,
-  })
+  // 작성일시 표시: 10분 이내는 상대 시간, 그 이후는 절대 시간
+  const getDisplayDate = () => {
+    const createdDate = new Date(note.createdAt)
+    const minutesAgo = differenceInMinutes(new Date(), createdDate)
+
+    if (minutesAgo < 10) {
+      // 10분 이내: 상대 시간
+      return formatDistanceToNow(createdDate, {
+        addSuffix: true,
+        locale: ko,
+      })
+    } else {
+      // 10분 이후: 절대 시간 (초 단위까지)
+      return format(createdDate, 'yyyy-MM-dd HH:mm:ss', {
+        locale: ko,
+      })
+    }
+  }
+
+  const displayDate = getDisplayDate()
 
   // 본문 미리보기
   const preview = truncateText(note.content)
@@ -41,7 +56,7 @@ export function NoteCard({ note }: NoteCardProps) {
         <CardTitle className="text-lg font-semibold line-clamp-2">
           {note.title}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">{relativeTime}</p>
+        <p className="text-sm text-muted-foreground">{displayDate}</p>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground line-clamp-3">{preview}</p>
