@@ -1,13 +1,14 @@
 // app/(auth)/actions.ts
 // 인증 관련 Server Actions (회원가입, 로그인, 로그아웃)
 // 서버 사이드에서 Supabase Auth API 호출 처리
-// 관련 파일: lib/supabase/server.ts, app/(auth)/signup/page.tsx
+// 관련 파일: lib/supabase/server.ts, app/(auth)/signup/page.tsx, lib/errors/auth-errors.ts
 
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { parseAuthError, logAuthError } from '@/lib/errors/auth-errors'
 
 // 회원가입 스키마 정의
 const signUpSchema = z.object({
@@ -67,43 +68,18 @@ export async function signUpWithEmail(formData: SignUpFormData) {
   })
 
   if (error) {
-    // 디버깅을 위한 로깅
-    console.error('Signup error:', error)
+    // 에러 로그 기록
+    logAuthError(error, { email, action: 'signup' })
     
-    // 에러 메시지 한국어 변환
-    let errorMessage = '회원가입에 실패했습니다'
+    // 에러 메시지 파싱
+    const errorMessage = parseAuthError(error)
     
-    // Email Provider 비활성화 체크
-    if (error.code === 'email_provider_disabled' || error.message.includes('Email logins are disabled')) {
-      errorMessage = 'Supabase에서 이메일 로그인이 비활성화되어 있습니다. Authentication → Providers → Email을 활성화해주세요.'
-      return {
-        error: { message: errorMessage },
-      }
-    }
-    
-    // 중복 이메일 체크 (다양한 케이스 처리)
-    if (
-      error.message.includes('already registered') || 
-      error.message.includes('already been registered') ||
-      error.message.includes('User already registered') ||
-      error.status === 422
-    ) {
-      errorMessage = '이미 사용 중인 이메일 주소입니다'
-      return {
-        error: { message: errorMessage },
-      }
-    } 
-    
-    if (error.message.includes('Invalid email')) {
-      errorMessage = '유효하지 않은 이메일 주소입니다'
-    } else if (error.message.includes('Password')) {
-      errorMessage = '비밀번호 형식이 올바르지 않습니다'
-    } else if (error.message.includes('network')) {
-      errorMessage = '네트워크 연결을 확인해주세요'
-    }
-
     return {
-      error: { message: `${errorMessage} (${error.message})` },
+      error: { 
+        message: process.env.NODE_ENV === 'development' 
+          ? `${errorMessage} (${error.message})` 
+          : errorMessage 
+      },
     }
   }
   
@@ -167,32 +143,18 @@ export async function signInWithEmail(formData: SignInFormData) {
   })
 
   if (error) {
-    // 디버깅을 위한 로깅
-    console.error('Login error:', error)
+    // 에러 로그 기록
+    logAuthError(error, { email, action: 'login' })
     
-    // 에러 메시지 한국어 변환
-    let errorMessage = '로그인에 실패했습니다'
-
-    if (error.code === 'email_provider_disabled' || error.message.includes('Email logins are disabled')) {
-      errorMessage = 'Supabase에서 이메일 로그인이 비활성화되어 있습니다. Authentication → Providers → Email을 활성화해주세요.'
-    } else if (
-      error.message.includes('Invalid login credentials') ||
-      error.message.includes('invalid credentials')
-    ) {
-      errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다'
-    } else if (error.message.includes('Email not confirmed')) {
-      errorMessage = '이메일 인증이 필요합니다. 이메일을 확인해주세요'
-    } else if (error.message.includes('network')) {
-      errorMessage = '네트워크 연결을 확인해주세요'
-    }
-
-    // 개발 환경에서는 원본 에러도 함께 표시
-    if (process.env.NODE_ENV === 'development') {
-      errorMessage = `${errorMessage} (${error.message})`
-    }
-
+    // 에러 메시지 파싱
+    const errorMessage = parseAuthError(error)
+    
     return {
-      error: { message: errorMessage },
+      error: { 
+        message: process.env.NODE_ENV === 'development' 
+          ? `${errorMessage} (${error.message})` 
+          : errorMessage 
+      },
     }
   }
 
@@ -213,6 +175,9 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut()
 
   if (error) {
+    // 에러 로그 기록
+    logAuthError(error, { action: 'signout' })
+    
     return {
       error: { message: '로그아웃에 실패했습니다' },
     }
@@ -248,8 +213,8 @@ export async function requestPasswordReset(formData: PasswordResetRequestData) {
   })
 
   if (error) {
-    // 디버깅을 위한 로깅
-    console.error('Password reset request error:', error)
+    // 에러 로그 기록 (보안상 이메일은 기록하지 않음)
+    logAuthError(error, { action: 'password_reset_request' })
 
     // 보안상 이메일 존재 여부를 노출하지 않음
     // 모든 경우에 성공 메시지 반환
@@ -297,19 +262,18 @@ export async function updatePassword(formData: PasswordUpdateData) {
   })
 
   if (error) {
-    // 디버깅을 위한 로깅
-    console.error('Password update error:', error)
-
-    let errorMessage = '비밀번호 변경에 실패했습니다'
-
-    if (error.message.includes('session')) {
-      errorMessage = '세션이 만료되었습니다. 다시 시도해주세요'
-    } else if (error.message.includes('network')) {
-      errorMessage = '네트워크 연결을 확인해주세요'
-    }
-
+    // 에러 로그 기록
+    logAuthError(error, { action: 'password_update' })
+    
+    // 에러 메시지 파싱
+    const errorMessage = parseAuthError(error)
+    
     return {
-      error: { message: errorMessage },
+      error: { 
+        message: process.env.NODE_ENV === 'development' 
+          ? `${errorMessage} (${error.message})` 
+          : errorMessage 
+      },
     }
   }
 
@@ -343,7 +307,9 @@ export async function completeOnboarding() {
     .eq('user_id', user.id)
 
   if (error) {
-    console.error('Failed to complete onboarding:', error)
+    // 에러 로그 기록
+    logAuthError(error, { user_id: user.id, action: 'complete_onboarding' })
+    
     return {
       error: { message: '온보딩 완료 처리에 실패했습니다' },
     }

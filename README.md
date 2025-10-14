@@ -34,9 +34,19 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
 # Site URL
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Database Configuration (Drizzle ORM)
+# Supabase 대시보드 > Project Settings > Database > Connection string (Transaction)에서 복사
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@[PROJECT-REF].supabase.co:6543/postgres?pgbouncer=true&connection_limit=1
 ```
 
-3. 개발 서버 실행
+3. 데이터베이스 마이그레이션 적용
+
+```bash
+pnpm db:push
+```
+
+4. 개발 서버 실행
 
 ```bash
 pnpm dev
@@ -82,29 +92,53 @@ pnpm start        # 프로덕션 서버 실행
 pnpm lint         # ESLint 실행
 ```
 
-### Drizzle ORM
+### 테스트
 
 ```bash
-pnpm drizzle-kit generate    # 마이그레이션 파일 생성
-pnpm drizzle-kit migrate     # 마이그레이션 적용
-pnpm drizzle-kit push        # 스키마 DB에 반영
-pnpm drizzle-kit pull        # DB 스키마 가져오기
-pnpm drizzle-kit studio      # Drizzle Studio 실행
+pnpm test        # 테스트 실행
+pnpm test:ui     # 테스트 UI 실행
+pnpm test:run    # CI 모드 테스트 실행
 ```
+
+### 데이터베이스 (Drizzle ORM)
+
+```bash
+pnpm db:generate    # 마이그레이션 파일 생성
+pnpm db:push        # 스키마 DB에 직접 반영 (개발용)
+pnpm db:migrate     # 마이그레이션 적용 (프로덕션용)
+pnpm db:studio      # Drizzle Studio 실행 (DB GUI)
+pnpm db:check       # 마이그레이션 충돌 검사
+```
+
+**스키마 변경 워크플로우:**
+
+1. `drizzle/schema.ts` 파일에서 스키마 수정
+2. `pnpm db:generate` - 마이그레이션 파일 생성
+3. `pnpm db:push` - 개발 DB에 적용
+4. `pnpm db:studio` - Drizzle Studio로 확인
 
 ## ✅ 개발 진행 상황
 
 ### 완료된 기능
 
-- [x] Epic 1: 사용자 인증
+- [x] **Epic 1: 사용자 인증 (100%)**
   - [x] Story 1.1: 이메일/비밀번호 회원가입
+  - [x] Story 1.2: 이메일/비밀번호 로그인
+  - [x] Story 1.3: 로그아웃
+  - [x] Story 1.4: 이메일 인증
+  - [x] Story 1.5: 비밀번호 재설정
+  - [x] Story 1.6: 보호된 라우트 미들웨어
+  - [x] Story 1.7: 인증 에러 핸들링
+
+- [x] **Epic 2: 노트 관리**
+  - [x] Story 2.0: Drizzle ORM 환경 세팅 및 스키마 정의
 
 ### 진행 예정
 
-- [ ] Epic 1: 사용자 인증
-  - [ ] Story 1.2: 이메일/비밀번호 로그인
-  - [ ] Story 1.3: 로그아웃
 - [ ] Epic 2: 노트 관리
+  - [ ] Story 2.1: 노트 생성
+  - [ ] Story 2.2: 노트 목록 조회
+  - [ ] 기타...
 - [ ] Epic 3: 음성 메모
 - [ ] Epic 4: AI 요약 및 태깅
 - [ ] Epic 5: 검색 및 필터링
