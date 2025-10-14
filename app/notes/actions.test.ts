@@ -380,6 +380,192 @@ describe('getNotes Server Action', () => {
     expect(result.success).toBe(true)
     expect(result.pagination?.currentPage).toBe(1)
   })
+
+  it('newest 정렬로 노트를 조회할 수 있다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockSelect = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ value: 5 }]),
+      }),
+    })
+
+    const mockSelectNotes = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              offset: vi.fn().mockResolvedValue([
+                {
+                  id: '1',
+                  userId: 'test-user-id',
+                  title: 'Newest Note',
+                  content: 'Content',
+                  createdAt: new Date('2025-01-15'),
+                  updatedAt: new Date('2025-01-15'),
+                },
+              ]),
+            }),
+          }),
+        }),
+      }),
+    })
+
+    mockDb.select = vi
+      .fn()
+      .mockImplementationOnce(mockSelect)
+      .mockImplementationOnce(mockSelectNotes)
+
+    const { getNotes } = await import('./actions')
+    const result = await getNotes(1, 'newest')
+
+    expect(result.success).toBe(true)
+    expect(result.notes).toHaveLength(1)
+  })
+
+  it('oldest 정렬로 노트를 조회할 수 있다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockSelect = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ value: 5 }]),
+      }),
+    })
+
+    const mockSelectNotes = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              offset: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }),
+    })
+
+    mockDb.select = vi
+      .fn()
+      .mockImplementationOnce(mockSelect)
+      .mockImplementationOnce(mockSelectNotes)
+
+    const { getNotes } = await import('./actions')
+    const result = await getNotes(1, 'oldest')
+
+    expect(result.success).toBe(true)
+  })
+
+  it('title 정렬로 노트를 조회할 수 있다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockSelect = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ value: 5 }]),
+      }),
+    })
+
+    const mockSelectNotes = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              offset: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }),
+    })
+
+    mockDb.select = vi
+      .fn()
+      .mockImplementationOnce(mockSelect)
+      .mockImplementationOnce(mockSelectNotes)
+
+    const { getNotes } = await import('./actions')
+    const result = await getNotes(1, 'title')
+
+    expect(result.success).toBe(true)
+  })
+
+  it('updated 정렬로 노트를 조회할 수 있다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockSelect = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ value: 5 }]),
+      }),
+    })
+
+    const mockSelectNotes = vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              offset: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      }),
+    })
+
+    mockDb.select = vi
+      .fn()
+      .mockImplementationOnce(mockSelect)
+      .mockImplementationOnce(mockSelectNotes)
+
+    const { getNotes } = await import('./actions')
+    const result = await getNotes(1, 'updated')
+
+    expect(result.success).toBe(true)
+  })
 })
 
 describe('getNoteById Server Action', () => {
@@ -736,6 +922,161 @@ describe('updateNote Server Action', () => {
 
     expect(result.success).toBe(false)
     expect(result.error).toBe('노트 수정에 실패했습니다. 잠시 후 다시 시도해주세요.')
+  })
+})
+
+describe('deleteNote Server Action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('비인증 사용자는 노트를 삭제할 수 없다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const mockCreateClient = vi.mocked(createClient)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { message: 'Not authenticated' },
+        }),
+      },
+    } as any)
+
+    const { deleteNote } = await import('./actions')
+    const result = await deleteNote('test-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('인증되지 않은 사용자입니다. 다시 로그인해주세요.')
+  })
+
+  it('인증된 사용자는 자신의 노트를 삭제할 수 있다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    const deletedNote = {
+      id: 'test-note-id',
+      userId: 'test-user-id',
+      title: 'Test Note',
+      content: 'Test Content',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockDelete = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([deletedNote]),
+      }),
+    })
+
+    mockDb.delete = mockDelete
+
+    const { deleteNote } = await import('./actions')
+    const result = await deleteNote('test-note-id')
+
+    expect(result.success).toBe(true)
+    expect(mockDelete).toHaveBeenCalled()
+  })
+
+  it('다른 사용자의 노트는 삭제할 수 없다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockDelete = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    })
+
+    mockDb.delete = mockDelete
+
+    const { deleteNote } = await import('./actions')
+    const result = await deleteNote('other-user-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('노트를 찾을 수 없거나 삭제 권한이 없습니다.')
+  })
+
+  it('존재하지 않는 노트 삭제 시 에러를 반환한다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockDelete = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    })
+
+    mockDb.delete = mockDelete
+
+    const { deleteNote } = await import('./actions')
+    const result = await deleteNote('non-existent-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('노트를 찾을 수 없거나 삭제 권한이 없습니다.')
+  })
+
+  it('DB 삭제 실패 시 에러를 반환한다', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { db } = await import('@/lib/db')
+    const mockCreateClient = vi.mocked(createClient)
+    const mockDb = vi.mocked(db)
+
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    const mockDelete = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockRejectedValue(new Error('DB Error')),
+      }),
+    })
+
+    mockDb.delete = mockDelete
+
+    const { deleteNote } = await import('./actions')
+    const result = await deleteNote('test-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('노트 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
   })
 })
 

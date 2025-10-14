@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { getNoteById } from '../actions'
+import { DeleteDialog } from './delete-dialog'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -56,9 +57,7 @@ export default async function NoteDetailPage({ params }: PageProps) {
             <Link href={`/notes/${note.id}/edit`}>
               <Button>수정</Button>
             </Link>
-            <Button variant="destructive" disabled>
-              삭제
-            </Button>
+            <DeleteDialog noteId={note.id} noteTitle={note.title} />
           </div>
         </div>
 

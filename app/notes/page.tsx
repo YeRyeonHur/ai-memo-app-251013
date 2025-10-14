@@ -9,17 +9,24 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { LogoutButton } from './logout-button'
-import { getNotes } from './actions'
+import { getNotes, type SortOption } from './actions'
 import { NoteCard } from './note-card'
 import { Pagination } from './pagination'
 import { NoteListSkeleton } from './note-card-skeleton'
+import { SortSelect } from './sort-select'
 
 interface PageProps {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; sort?: string }>
 }
 
-async function NotesList({ page }: { page: number }) {
-  const result = await getNotes(page)
+async function NotesList({
+  page,
+  sortBy,
+}: {
+  page: number
+  sortBy: SortOption
+}) {
+  const result = await getNotes(page, sortBy)
 
   if (!result.success || !result.notes || !result.pagination) {
     return (
@@ -98,9 +105,10 @@ export default async function NotesPage({ searchParams }: PageProps) {
     redirect('/onboarding')
   }
 
-  // URL 쿼리 파라미터에서 페이지 번호 읽기
+  // URL 쿼리 파라미터에서 페이지 번호와 정렬 옵션 읽기
   const params = await searchParams
   const page = Math.max(1, parseInt(params.page || '1', 10))
+  const sortBy = (params.sort as SortOption) || 'newest'
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -119,9 +127,14 @@ export default async function NotesPage({ searchParams }: PageProps) {
           </div>
         </div>
 
+        {/* 정렬 옵션 */}
+        <div className="flex justify-end mb-6">
+          <SortSelect />
+        </div>
+
         {/* 노트 목록 영역 */}
         <Suspense fallback={<NoteListSkeleton />}>
-          <NotesList page={page} />
+          <NotesList page={page} sortBy={sortBy} />
         </Suspense>
 
         {/* 하단 링크 */}

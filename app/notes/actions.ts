@@ -10,7 +10,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
 import { notes, type Note } from '@/drizzle/schema'
-import { eq, desc, count, and } from 'drizzle-orm'
+import { eq, desc, asc, count, and } from 'drizzle-orm'
 
 interface CreateNoteResult {
   success: boolean
@@ -41,6 +41,13 @@ interface UpdateNoteResult {
   error?: string
   note?: Note
 }
+
+interface DeleteNoteResult {
+  success: boolean
+  error?: string
+}
+
+export type SortOption = 'newest' | 'oldest' | 'title' | 'updated'
 
 export async function createNote(
   title: string,
@@ -110,7 +117,10 @@ export async function createNote(
   }
 }
 
-export async function getNotes(page: number = 1): Promise<GetNotesResult> {
+export async function getNotes(
+  page: number = 1,
+  sortBy: SortOption = 'newest'
+): Promise<GetNotesResult> {
   try {
     // 1. 인증 사용자 확인
     const supabase = await createClient()
@@ -131,22 +141,40 @@ export async function getNotes(page: number = 1): Promise<GetNotesResult> {
     const pageSize = 20
     const offset = (pageNumber - 1) * pageSize
 
-    // 3. 전체 노트 개수 조회
+    // 3. 정렬 옵션에 따른 orderBy 절 결정
+    let orderByClause
+    switch (sortBy) {
+      case 'oldest':
+        orderByClause = asc(notes.createdAt)
+        break
+      case 'title':
+        orderByClause = asc(notes.title)
+        break
+      case 'updated':
+        orderByClause = desc(notes.updatedAt)
+        break
+      case 'newest':
+      default:
+        orderByClause = desc(notes.createdAt)
+        break
+    }
+
+    // 4. 전체 노트 개수 조회
     const [{ value: totalNotes }] = await db
       .select({ value: count() })
       .from(notes)
       .where(eq(notes.userId, user.id))
 
-    // 4. 노트 목록 조회 (페이지네이션 + 정렬)
+    // 5. 노트 목록 조회 (페이지네이션 + 정렬)
     const notesList = await db
       .select()
       .from(notes)
       .where(eq(notes.userId, user.id))
-      .orderBy(desc(notes.createdAt))
+      .orderBy(orderByClause)
       .limit(pageSize)
       .offset(offset)
 
-    // 5. 페이지네이션 메타데이터 계산
+    // 6. 페이지네이션 메타데이터 계산
     const totalPages = Math.ceil(totalNotes / pageSize)
 
     return {
@@ -286,6 +314,52 @@ export async function updateNote(
     return {
       success: false,
       error: '노트 수정에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    }
+  }
+}
+
+export async function deleteNote(noteId: string): Promise<DeleteNoteResult> {
+  try {
+    // 1. 인증 사용자 확인
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: '인증되지 않은 사용자입니다. 다시 로그인해주세요.',
+      }
+    }
+
+    // 2. Drizzle ORM으로 노트 삭제 (id와 user_id로 필터링)
+    const [deletedNote] = await db
+      .delete(notes)
+      .where(and(eq(notes.id, noteId), eq(notes.userId, user.id)))
+      .returning()
+
+    // 3. 노트가 없거나 권한이 없으면 에러 반환
+    if (!deletedNote) {
+      return {
+        success: false,
+        error: '노트를 찾을 수 없거나 삭제 권한이 없습니다.',
+      }
+    }
+
+    // 4. 캐시 무효화
+    revalidatePath('/notes')
+    revalidatePath(`/notes/${noteId}`)
+
+    return {
+      success: true,
+    }
+  } catch (error) {
+    console.error('노트 삭제 실패:', error)
+    return {
+      success: false,
+      error: '노트 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
     }
   }
 }
