@@ -4,7 +4,7 @@
 // Related: app/notes/ai-actions.ts, lib/gemini/client.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { generateSummary, getSummary } from '../ai-actions'
+import { generateSummary, getSummary, generateTags, getTags, updateTags } from '../ai-actions'
 
 // Mock Supabase
 vi.mock('@/lib/supabase/server', () => ({
@@ -32,6 +32,9 @@ vi.mock('@/lib/db', () => ({
       values: vi.fn(() => ({
         returning: vi.fn(() => Promise.resolve([])),
       })),
+    })),
+    delete: vi.fn(() => ({
+      where: vi.fn(() => Promise.resolve()),
     })),
   },
 }))
@@ -457,6 +460,443 @@ describe('getSummary', () => {
     expect(result.success).toBe(true)
     expect(result.summary).toBeDefined()
     expect(result.summary?.summary).toContain('요약 포인트')
+  })
+})
+
+describe('generateTags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Gemini API 응답을 태그로 변경
+    const mockGenerateText = generateText as any
+    mockGenerateText.mockResolvedValue({
+      text: '개발, javascript, 프론트엔드',
+    })
+  })
+
+  it('인증되지 않은 사용자는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: null },
+            error: new Error('Not authenticated'),
+          })
+        ),
+      },
+    })
+
+    const result = await generateTags('test-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('인증')
+  })
+
+  it('유효하지 않은 noteId는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const result = await generateTags('')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('유효하지 않습니다')
+  })
+
+  it('존재하지 않는 노트는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    mockDb.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => Promise.resolve([])),
+        })),
+      })),
+    })
+
+    const result = await generateTags('non-existent-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('찾을 수 없거나')
+  })
+
+  it('태그 생성 성공 시 태그 배열을 반환한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    
+    mockDb.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() =>
+            Promise.resolve([
+              {
+                id: 'note-id',
+                userId: 'user-id',
+                content: '테스트 노트 내용',
+              },
+            ])
+          ),
+        })),
+      })),
+    })
+
+    mockDb.delete.mockReturnValue({
+      where: vi.fn(() => Promise.resolve()),
+    })
+
+    mockDb.insert.mockReturnValue({
+      values: vi.fn(() => Promise.resolve()),
+    })
+
+    const result = await generateTags('note-id')
+
+    expect(result.success).toBe(true)
+    expect(result.tags).toBeDefined()
+    expect(Array.isArray(result.tags)).toBe(true)
+  })
+})
+
+describe('getTags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('인증되지 않은 사용자는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: null },
+            error: new Error('Not authenticated'),
+          })
+        ),
+      },
+    })
+
+    const result = await getTags('test-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('인증')
+  })
+
+  it('유효하지 않은 noteId는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const result = await getTags('')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('유효하지 않습니다')
+  })
+
+  it('존재하지 않는 노트는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    mockDb.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => Promise.resolve([])),
+        })),
+      })),
+    })
+
+    const result = await getTags('non-existent-note-id')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('찾을 수 없거나')
+  })
+
+  it('태그가 없으면 빈 배열을 반환한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    
+    let selectCallCount = 0
+    mockDb.select.mockImplementation(() => {
+      selectCallCount++
+      if (selectCallCount === 1) {
+        // 노트 조회 성공
+        return {
+          from: vi.fn(() => ({
+            where: vi.fn(() => ({
+              limit: vi.fn(() =>
+                Promise.resolve([
+                  {
+                    id: 'note-id',
+                    userId: 'user-id',
+                    content: '테스트 노트',
+                  },
+                ])
+              ),
+            })),
+          })),
+        }
+      } else {
+        // 태그 조회 (없음)
+        return {
+          from: vi.fn(() => ({
+            where: vi.fn(() => ({
+              orderBy: vi.fn(() => Promise.resolve([])),
+            })),
+          })),
+        }
+      }
+    })
+
+    const result = await getTags('note-id')
+
+    expect(result.success).toBe(true)
+    expect(result.tags).toEqual([])
+  })
+
+  it('태그가 있으면 태그 배열을 반환한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    
+    let selectCallCount = 0
+    mockDb.select.mockImplementation(() => {
+      selectCallCount++
+      if (selectCallCount === 1) {
+        // 노트 조회
+        return {
+          from: vi.fn(() => ({
+            where: vi.fn(() => ({
+              limit: vi.fn(() =>
+                Promise.resolve([
+                  {
+                    id: 'note-id',
+                    userId: 'user-id',
+                    content: '테스트 노트',
+                  },
+                ])
+              ),
+            })),
+          })),
+        }
+      } else {
+        // 태그 조회
+        return {
+          from: vi.fn(() => ({
+            where: vi.fn(() => ({
+              orderBy: vi.fn(() =>
+                Promise.resolve([
+                  {
+                    id: 'tag-id-1',
+                    noteId: 'note-id',
+                    userId: 'user-id',
+                    tag: '개발',
+                    model: 'gemini-2.0-flash',
+                    createdAt: new Date(),
+                  },
+                  {
+                    id: 'tag-id-2',
+                    noteId: 'note-id',
+                    userId: 'user-id',
+                    tag: 'javascript',
+                    model: 'gemini-2.0-flash',
+                    createdAt: new Date(),
+                  },
+                ])
+              ),
+            })),
+          })),
+        }
+      }
+    })
+
+    const result = await getTags('note-id')
+
+    expect(result.success).toBe(true)
+    expect(result.tags).toBeDefined()
+    expect(result.tags?.length).toBe(2)
+  })
+})
+
+describe('updateTags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('인증되지 않은 사용자는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: null },
+            error: new Error('Not authenticated'),
+          })
+        ),
+      },
+    })
+
+    const result = await updateTags('test-note-id', ['태그1'])
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('인증')
+  })
+
+  it('유효하지 않은 noteId는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const result = await updateTags('', ['태그1'])
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('유효하지 않습니다')
+  })
+
+  it('존재하지 않는 노트는 실패한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    mockDb.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => Promise.resolve([])),
+        })),
+      })),
+    })
+
+    const result = await updateTags('non-existent-note-id', ['태그1'])
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('찾을 수 없거나')
+  })
+
+  it('태그 업데이트 성공 시 성공 결과를 반환한다', async () => {
+    const mockCreateClient = createClient as any
+    mockCreateClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn(() =>
+          Promise.resolve({
+            data: { user: { id: 'user-id' } },
+            error: null,
+          })
+        ),
+      },
+    })
+
+    const mockDb = db as any
+    
+    mockDb.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() =>
+            Promise.resolve([
+              {
+                id: 'note-id',
+                userId: 'user-id',
+                content: '테스트 노트',
+              },
+            ])
+          ),
+        })),
+      })),
+    })
+
+    mockDb.delete.mockReturnValue({
+      where: vi.fn(() => Promise.resolve()),
+    })
+
+    mockDb.insert.mockReturnValue({
+      values: vi.fn(() => Promise.resolve()),
+    })
+
+    const result = await updateTags('note-id', ['새태그1', '새태그2'])
+
+    expect(result.success).toBe(true)
   })
 })
 

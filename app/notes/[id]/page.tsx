@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { getNoteById } from '../actions'
 import { DeleteDialog } from './delete-dialog'
+import { AiSection } from './ai-section'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -76,6 +77,11 @@ export default async function NoteDetailPage({ params }: PageProps) {
             </p>
           </CardContent>
         </Card>
+
+        {/* AI 요약 및 태그 섹션 */}
+        <div className="mt-8">
+          <AiSection noteId={note.id} />
+        </div>
       </div>
     </div>
   )

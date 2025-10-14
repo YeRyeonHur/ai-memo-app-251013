@@ -11,6 +11,7 @@ import {
   validatePrompt,
   truncateToTokenLimit,
   getTimeout,
+  parseTagsFromText,
 } from '../utils'
 
 describe('Gemini Utils', () => {
@@ -163,6 +164,62 @@ describe('Gemini Utils', () => {
     it('음수 값이면 기본값을 반환한다', () => {
       process.env.GEMINI_TIMEOUT_MS = '-1000'
       expect(getTimeout()).toBe(10000)
+    })
+  })
+
+  describe('parseTagsFromText', () => {
+    it('쉼표로 구분된 태그를 파싱한다', () => {
+      const text = '개발, JavaScript, React'
+      const tags = parseTagsFromText(text)
+      expect(tags).toEqual(['개발', 'javascript', 'react'])
+    })
+
+    it('공백을 제거하고 소문자로 변환한다', () => {
+      const text = ' Frontend ,  BACKEND  , DevOps '
+      const tags = parseTagsFromText(text)
+      expect(tags).toEqual(['frontend', 'backend', 'devops'])
+    })
+
+    it('빈 태그를 제거한다', () => {
+      const text = 'tag1, , tag2, ,, tag3'
+      const tags = parseTagsFromText(text)
+      expect(tags).toEqual(['tag1', 'tag2', 'tag3'])
+    })
+
+    it('중복 태그를 제거한다', () => {
+      const text = 'react, React, REACT, vue, React'
+      const tags = parseTagsFromText(text)
+      expect(tags).toEqual(['react', 'vue'])
+    })
+
+    it('최대 6개의 태그만 반환한다', () => {
+      const text = '태그1, 태그2, 태그3, 태그4, 태그5, 태그6, 태그7, 태그8'
+      const tags = parseTagsFromText(text)
+      expect(tags.length).toBe(6)
+      expect(tags).toEqual(['태그1', '태그2', '태그3', '태그4', '태그5', '태그6'])
+    })
+
+    it('빈 문자열은 빈 배열을 반환한다', () => {
+      expect(parseTagsFromText('')).toEqual([])
+      expect(parseTagsFromText('   ')).toEqual([])
+    })
+
+    it('쉼표만 있는 문자열은 빈 배열을 반환한다', () => {
+      expect(parseTagsFromText(',')).toEqual([])
+      expect(parseTagsFromText(',,,')).toEqual([])
+      expect(parseTagsFromText(' , , , ')).toEqual([])
+    })
+
+    it('특수문자를 포함한 태그를 파싱한다', () => {
+      const text = 'c++, node.js, vue.js'
+      const tags = parseTagsFromText(text)
+      expect(tags).toEqual(['c++', 'node.js', 'vue.js'])
+    })
+
+    it('한글과 영어가 섞인 태그를 파싱한다', () => {
+      const text = '웹개발, JavaScript, 프론트엔드'
+      const tags = parseTagsFromText(text)
+      expect(tags).toEqual(['웹개발', 'javascript', '프론트엔드'])
     })
   })
 })

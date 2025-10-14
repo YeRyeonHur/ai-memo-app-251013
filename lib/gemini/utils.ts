@@ -116,3 +116,29 @@ export function getTimeout(): number {
   return 10000 // 기본값: 10초
 }
 
+/**
+ * Gemini API 응답에서 태그를 파싱합니다
+ * 쉼표로 구분된 문자열을 배열로 변환하고 정규화합니다
+ * 
+ * @param text - 파싱할 텍스트 (예: "태그1, 태그2, 태그3")
+ * @returns 정규화된 태그 배열 (최대 6개)
+ * 
+ * @example
+ * ```typescript
+ * const tags = parseTagsFromText('개발, JavaScript, React')
+ * // ['개발', 'javascript', 'react']
+ * ```
+ */
+export function parseTagsFromText(text: string): string[] {
+  if (!text || text.trim().length === 0) {
+    return []
+  }
+
+  return text
+    .split(',')
+    .map((tag) => tag.trim().toLowerCase()) // 공백 제거 및 소문자 변환
+    .filter((tag) => tag.length > 0) // 빈 태그 제거
+    .filter((tag, index, self) => self.indexOf(tag) === index) // 중복 제거
+    .slice(0, 6) // 최대 6개
+}
+
