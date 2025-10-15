@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { testGeminiAPI, checkApiKeyStatus } from './actions'
+import { testDatabaseConnection, testNotesTable } from './actions'
 import { toast } from 'sonner'
 
 export default function APITestPage() {
@@ -27,14 +28,27 @@ export default function APITestPage() {
   const [generationTime, setGenerationTime] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [apiKeyStatus, setApiKeyStatus] = useState<string>('확인 중...')
+  const [dbConnectionStatus, setDbConnectionStatus] = useState<string>('확인 중...')
+  const [notesTableStatus, setNotesTableStatus] = useState<string>('확인 중...')
 
-  // API 키 상태 확인
+  // API 키 및 데이터베이스 상태 확인
   useEffect(() => {
+    // API 키 상태 확인
     checkApiKeyStatus().then(({ hasKey, message }) => {
       setApiKeyStatus(message)
       if (!hasKey) {
         toast.error('API 키가 설정되지 않았습니다')
       }
+    })
+
+    // 데이터베이스 연결 테스트
+    testDatabaseConnection().then((result) => {
+      setDbConnectionStatus(result.success ? '✅ 연결 성공' : `❌ 연결 실패: ${result.error}`)
+    })
+
+    // notes 테이블 확인
+    testNotesTable().then((result) => {
+      setNotesTableStatus(result.success ? '✅ 테이블 존재' : `❌ 테이블 없음: ${result.error}`)
     })
   }, [])
 
@@ -85,23 +99,50 @@ export default function APITestPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 헤더 */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gemini API 테스트</h1>
+          <h1 className="text-3xl font-bold text-gray-900">API 테스트</h1>
           <p className="mt-2 text-gray-600">
-            Gemini API 기능을 직접 테스트해보세요
+            Gemini API 및 데이터베이스 연결 상태를 테스트해보세요
           </p>
         </div>
 
-        {/* API 키 상태 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">API 키 상태</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-sm ${apiKeyStatus.includes('정상') ? 'text-green-600' : 'text-red-600'}`}>
-              {apiKeyStatus}
-            </p>
-          </CardContent>
-        </Card>
+        {/* 시스템 상태 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* API 키 상태 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Gemini API 키</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-sm ${apiKeyStatus.includes('정상') ? 'text-green-600' : 'text-red-600'}`}>
+                {apiKeyStatus}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 데이터베이스 연결 상태 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">데이터베이스 연결</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-sm ${dbConnectionStatus.includes('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                {dbConnectionStatus}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Notes 테이블 상태 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Notes 테이블</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-sm ${notesTableStatus.includes('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                {notesTableStatus}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* 입력 영역 */}
         <Card>

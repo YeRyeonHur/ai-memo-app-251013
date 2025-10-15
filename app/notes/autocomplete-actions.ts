@@ -13,7 +13,7 @@ import { generateText } from '@/lib/gemini/client'
 import { createAutocompletePrompt } from '@/lib/gemini/prompts'
 import { parseGeminiError } from '@/lib/gemini/errors'
 import { truncateToTokenLimit, validatePrompt } from '@/lib/gemini/utils'
-import { analyzeUserWritingPattern, getUserWritingPattern, type PatternAnalysisResult } from '@/lib/utils/user-patterns'
+// 사용자 패턴 분석 기능 제거됨
 import type { AutocompleteSuggestion } from '@/components/ui/autocomplete'
 
 interface GenerateAutocompleteSuggestionResult {
@@ -60,33 +60,8 @@ export async function generateAutocompleteSuggestion(
       }
     }
 
-    // 3. 사용자 작성 패턴 분석
-    let userPattern = null
-    try {
-      // 사용자의 최근 노트들 조회
-      const userNotes = await db
-        .select({
-          title: notes.title,
-          content: notes.content,
-          createdAt: notes.createdAt,
-        })
-        .from(notes)
-        .where(eq(notes.userId, user.id))
-        .orderBy(desc(notes.createdAt))
-        .limit(20)
-
-      if (userNotes.length > 0) {
-        const patternResult = analyzeUserWritingPattern(user.id, userNotes)
-        userPattern = {
-          commonPhrases: patternResult.commonPhrases,
-          writingStyle: patternResult.writingStyle,
-          averageLength: patternResult.averageLength,
-        }
-      }
-    } catch (error) {
-      console.warn('사용자 패턴 분석 실패:', error)
-      // 패턴 분석 실패는 자동완성 생성을 중단시키지 않음
-    }
+    // 3. 사용자 패턴 분석 기능 제거됨
+    const userPattern = null
 
     // 4. 입력 텍스트 토큰 제한 체크 및 자동 잘림
     let textToProcess = inputText
@@ -97,7 +72,7 @@ export async function generateAutocompleteSuggestion(
     }
 
     // 5. Gemini API 호출 (자동완성 제안 생성)
-    const prompt = createAutocompletePrompt(textToProcess, context, userPattern)
+    const prompt = createAutocompletePrompt(textToProcess, context)
     console.log('📝 생성된 프롬프트:', prompt)
     
     const response = await generateText(prompt, {

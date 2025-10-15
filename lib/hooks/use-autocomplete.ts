@@ -180,6 +180,14 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
 
   // Debounced 입력값이 변경될 때 제안 생성
   useEffect(() => {
+    // 입력이 진행 중이면 제안 생성하지 않음
+    if (inputValue !== debouncedInput) {
+      setSuggestions([])
+      setIsVisible(false)
+      setIsLoading(false)
+      return
+    }
+    
     if (debouncedInput) {
       generateSuggestions(debouncedInput, context)
     } else {
@@ -187,7 +195,7 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
       setIsVisible(false)
       setIsLoading(false)
     }
-  }, [debouncedInput, context, generateSuggestions])
+  }, [debouncedInput, context, generateSuggestions, inputValue])
 
   // 입력값 변경 핸들러
   const handleInputChange = useCallback((value: string, ctx: string = '') => {
