@@ -278,7 +278,7 @@ export default function APITestPage() {
             <p>1. API 키가 정상적으로 설정되어 있는지 확인하세요</p>
             <p>2. 프롬프트를 입력하거나 샘플 버튼을 클릭하세요</p>
             <p>3. 필요시 Temperature와 Max Tokens을 조정하세요</p>
-            <p>4. "API 테스트 실행" 버튼을 클릭하여 테스트하세요</p>
+            <p>4. &quot;API 테스트 실행&quot; 버튼을 클릭하여 테스트하세요</p>
             <p className="pt-2 border-t">
               <strong>참고:</strong> 이 페이지는 개발/테스트용이며, 실제 사용자에게는 노출되지 않아야 합니다.
             </p>

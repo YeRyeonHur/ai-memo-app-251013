@@ -63,7 +63,7 @@ export function DeleteDialog({ noteId, noteTitle }: DeleteDialogProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>이 노트를 휴지통으로 이동하시겠습니까?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{noteTitle}" 노트가 휴지통으로 이동됩니다. 휴지통에서 복원하거나 영구 삭제할 수 있습니다.
+            &quot;{noteTitle}&quot; 노트가 휴지통으로 이동됩니다. 휴지통에서 복원하거나 영구 삭제할 수 있습니다.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
