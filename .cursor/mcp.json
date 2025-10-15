@@ -1,0 +1,22 @@
+{
+    "mcpServers": {
+      "supabase": {
+        "url": "https://mcp.supabase.com/mcp?project_ref=jxdigwanyvbktbimxqyg"
+      },
+      "playwright-mcp": {
+        "command": "npx",
+        "args": ["@playwright/mcp@latest"]
+      },
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp"]
+      },
+      "time": {
+        "command": "uvx",
+        "args": [
+          "mcp-server-time",
+          "--local-timezone=America/New_York"
+        ]
+      }
+    }
+  }
