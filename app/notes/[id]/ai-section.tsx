@@ -186,7 +186,10 @@ export function AiSection({ noteId }: AiSectionProps) {
         }
         
         if (result.success) {
-          toast.success('요약이 재생성되었습니다')
+          // 기존 요약이 있는지 확인해서 메시지 구분
+          const isFirstGeneration = !summary
+          const message = isFirstGeneration ? '요약이 생성되었습니다' : '요약이 재생성되었습니다'
+          toast.success(message)
           
           // 히스토리에 저장
           if (result.summary) {
@@ -205,10 +208,18 @@ export function AiSection({ noteId }: AiSectionProps) {
             setSummary(summaryResult.summary || null)
           }
         } else {
-          toast.error(result.error || '요약 재생성 중 오류가 발생했습니다')
+          const isFirstGeneration = !summary
+          const errorMessage = isFirstGeneration 
+            ? '요약 생성 중 오류가 발생했습니다' 
+            : '요약 재생성 중 오류가 발생했습니다'
+          toast.error(result.error || errorMessage)
         }
       } catch (error) {
-        toast.error('요약 재생성 중 오류가 발생했습니다')
+        const isFirstGeneration = !summary
+        const errorMessage = isFirstGeneration 
+          ? '요약 생성 중 오류가 발생했습니다' 
+          : '요약 재생성 중 오류가 발생했습니다'
+        toast.error(errorMessage)
       } finally {
         setIsLoadingSummary(false)
         setCurrentRegenerateOption('')
@@ -230,7 +241,10 @@ export function AiSection({ noteId }: AiSectionProps) {
         }
         
         if (result.success) {
-          toast.success('태그가 재생성되었습니다')
+          // 기존 태그가 있는지 확인해서 메시지 구분
+          const isFirstGeneration = tags.length === 0
+          const message = isFirstGeneration ? '태그가 생성되었습니다' : '태그가 재생성되었습니다'
+          toast.success(message)
           
           // 히스토리에 저장
           if (result.tags) {
@@ -244,10 +258,18 @@ export function AiSection({ noteId }: AiSectionProps) {
             setTags(tagsResult.tags || [])
           }
         } else {
-          toast.error(result.error || '태그 재생성 중 오류가 발생했습니다')
+          const isFirstGeneration = tags.length === 0
+          const errorMessage = isFirstGeneration 
+            ? '태그 생성 중 오류가 발생했습니다' 
+            : '태그 재생성 중 오류가 발생했습니다'
+          toast.error(result.error || errorMessage)
         }
       } catch (error) {
-        toast.error('태그 재생성 중 오류가 발생했습니다')
+        const isFirstGeneration = tags.length === 0
+        const errorMessage = isFirstGeneration 
+          ? '태그 생성 중 오류가 발생했습니다' 
+          : '태그 재생성 중 오류가 발생했습니다'
+        toast.error(errorMessage)
       } finally {
         setIsLoadingTags(false)
         setCurrentRegenerateOption('')
@@ -267,7 +289,6 @@ export function AiSection({ noteId }: AiSectionProps) {
           summary: historyItem.content,
           model: 'gemini-2.0-flash',
           createdAt: new Date(historyItem.timestamp),
-          updatedAt: new Date(historyItem.timestamp),
         })
         toast.success('이전 요약으로 복원되었습니다')
       }

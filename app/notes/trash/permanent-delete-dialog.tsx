@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -52,7 +52,7 @@ export function PermanentDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>정말로 영구 삭제하시겠습니까?</AlertDialogTitle>
           <AlertDialogDescription>
-            이 작업은 되돌릴 수 없습니다. 노트 "{note.title}"이(가) 완전히 삭제됩니다.
+            이 작업은 되돌릴 수 없습니다. 노트 &quot;{note.title}&quot;이(가) 완전히 삭제됩니다.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
       const result = await requestPasswordReset({ email: values.email })
 
       if (result?.error) {
-        toast.error(result.error.message)
+        toast.error(result.error.email?.[0] || '비밀번호 재설정 요청 중 오류가 발생했습니다')
       } else if (result?.success) {
         setEmailSent(true)
         toast.success('비밀번호 재설정 이메일이 발송되었습니다')
