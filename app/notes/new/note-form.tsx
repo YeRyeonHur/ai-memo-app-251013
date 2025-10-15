@@ -11,7 +11,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { AutocompleteTextarea } from '@/components/ui/autocomplete-textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { createNote } from '../actions'
 import { useDebounce } from '@/lib/hooks/use-debounce'
@@ -36,6 +36,7 @@ export function NoteForm() {
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
   const [savedDraft, setSavedDraft] = useState<ReturnType<typeof loadDraft>>(null)
   const [isNoteSaved, setIsNoteSaved] = useState(false) // 노트 저장 성공 플래그
+  const [isAutocompleteSelecting, setIsAutocompleteSelecting] = useState(false) // 자동완성 선택 중 플래그
 
   // 디바운스된 제목과 본문 (1초)
   const debouncedTitle = useDebounce(title, 1000)
@@ -68,6 +69,11 @@ export function NoteForm() {
   useEffect(() => {
     if (!userId) return
     
+    // 자동완성 선택 중이면 임시 저장하지 않음
+    if (isAutocompleteSelecting) {
+      return
+    }
+    
     // 제목과 본문이 모두 비어있으면 저장하지 않음
     if (!debouncedTitle.trim() && !debouncedContent.trim()) {
       return
@@ -78,7 +84,7 @@ export function NoteForm() {
     if (success) {
       setDraftSavedAt(new Date())
     }
-  }, [debouncedTitle, debouncedContent, userId])
+  }, [debouncedTitle, debouncedContent, userId, isAutocompleteSelecting])
 
   // 페이지를 떠날 때 임시 저장
   useEffect(() => {
@@ -235,7 +241,7 @@ export function NoteForm() {
             <Label htmlFor="content">
               본문 <span className="text-destructive">*</span>
             </Label>
-            <Textarea
+            <AutocompleteTextarea
               id="content"
               placeholder="노트 내용을 입력하세요"
               value={content}
@@ -245,10 +251,24 @@ export function NoteForm() {
                   setErrors((prev) => ({ ...prev, content: undefined }))
                 }
               }}
+              context={title} // 노트 제목을 컨텍스트로 전달
               disabled={isPending}
               className={`min-h-[240px] ${errors.content ? 'border-destructive' : ''}`}
               aria-invalid={!!errors.content}
               aria-describedby={errors.content ? 'content-error' : undefined}
+              onSuggestionSelect={(suggestion) => {
+                toast.success(`"${suggestion.text}" 제안을 선택했습니다`)
+              }}
+              onAutocompleteChange={(value, isFromSuggestion) => {
+                // 자동완성 제안 선택 시에는 임시저장하지 않음
+                if (isFromSuggestion) {
+                  setIsAutocompleteSelecting(true)
+                  // 플래그를 잠시 후 리셋
+                  setTimeout(() => {
+                    setIsAutocompleteSelecting(false)
+                  }, 1000) // 1초 후 리셋
+                }
+              }}
             />
             {errors.content && (
               <p id="content-error" className="text-sm text-destructive">

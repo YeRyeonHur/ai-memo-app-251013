@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AutocompleteTextarea } from '@/components/ui/autocomplete-textarea'
 import { updateNote } from '../../actions'
 import { useDebounce } from '@/lib/hooks/use-debounce'
 import { toast } from 'sonner'
@@ -149,12 +150,16 @@ export function EditForm({ initialNote }: EditFormProps) {
             {/* 본문 입력 필드 */}
             <div className="space-y-2">
               <Label htmlFor="content">본문</Label>
-              <textarea
+              <AutocompleteTextarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="노트 내용을 입력하세요"
-                className="w-full min-h-[400px] px-3 py-2 rounded-md border border-input bg-background text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                className="w-full min-h-[400px] resize-y"
+                context={title} // 제목을 컨텍스트로 전달
+                onSuggestionSelect={(suggestion) => {
+                  toast.success(`"${suggestion.text}" 제안을 선택했습니다`)
+                }}
               />
             </div>
 

@@ -141,3 +141,89 @@ ${content}
 **태그 (쉼표로 구분):**`
 }
 
+/**
+ * 자동완성 제안 생성을 위한 프롬프트를 생성합니다
+ * 사용자의 입력 텍스트와 컨텍스트를 기반으로 다음 문장이나 단어를 제안합니다
+ * 
+ * @param inputText - 사용자가 입력한 텍스트
+ * @param context - 노트의 제목이나 기존 내용 (컨텍스트)
+ * @param userPattern - 사용자의 작성 패턴 (선택사항)
+ * @returns 자동완성 제안 생성을 위한 프롬프트
+ */
+export function createAutocompletePrompt(
+  inputText: string,
+  context: string = '',
+  userPattern?: {
+    commonPhrases: string[]
+    writingStyle: 'formal' | 'casual' | 'academic'
+    averageLength: number
+  }
+): string {
+  const contextInfo = context ? `\n**노트 컨텍스트:**\n${context}` : ''
+  
+  const userStyleInfo = userPattern ? `
+**사용자 작성 스타일:**
+- 문체: ${userPattern.writingStyle === 'formal' ? '격식체' : userPattern.writingStyle === 'academic' ? '학술체' : '반말체'}
+- 자주 사용하는 표현: ${userPattern.commonPhrases.slice(0, 5).join(', ')}
+- 평균 문장 길이: ${userPattern.averageLength}자` : ''
+
+  return `당신은 사용자의 노트 작성을 도와주는 AI 자동완성 어시스턴트입니다.
+
+사용자가 입력한 텍스트를 분석하여 자연스럽고 유용한 자동완성 제안을 생성해주세요.
+
+**중요한 요구사항:**
+- 사용자의 입력 텍스트를 자연스럽게 완성하는 제안 생성
+- 문맥에 맞는 적절한 다음 문장이나 단어 제안
+- 최대 3개의 다양한 제안 옵션 제공
+- 각 제안은 [타입] (신뢰도%) 형식으로 표시
+- 타입: word(단어), phrase(구문), sentence(문장)
+- 신뢰도: 0-100% 범위의 정확도 점수
+- 한국어로 자연스럽게 작성
+
+**문체 일관성 (매우 중요):**
+- 사용자의 기존 문체를 정확히 분석하고 동일한 문체로 제안 생성
+- 격식체 사용자: "입니다", "습니다", "하였습니다" 등 존댓말 사용
+- 반말체 사용자: "야", "어", "지", "네" 등 반말 사용
+- 학술체 사용자: "따르면", "분석 결과", "연구에 따르면" 등 학술적 표현 사용
+- 사용자의 자주 사용하는 표현을 제안에 반영
+- 절대로 사용자의 문체와 다른 문체로 제안하지 마세요
+
+**사용자 입력 텍스트:**
+${inputText}${contextInfo}${userStyleInfo}
+
+**자동완성 제안 (각 줄마다 하나의 제안, 사용자 문체와 일치해야 함):**
+제안텍스트 [타입] (신뢰도%)`
+}
+
+/**
+ * 사용자 패턴 분석을 위한 프롬프트를 생성합니다
+ * 사용자의 과거 노트들을 분석하여 작성 패턴을 파악합니다
+ * 
+ * @param userText - 사용자의 과거 노트 텍스트
+ * @returns 사용자 패턴 분석 프롬프트
+ */
+export function createUserPatternAnalysisPrompt(userText: string): string {
+  return `당신은 사용자의 작성 패턴을 분석하는 AI 어시스턴트입니다.
+
+다음은 사용자가 작성한 노트들의 내용입니다. 이를 분석하여 사용자의 작성 패턴을 파악해주세요.
+
+**분석 요구사항:**
+- 자주 사용하는 표현이나 구문을 찾아주세요 (최대 10개)
+- 문체가 격식체(formal), 반말체(casual), 학술체(academic) 중 어디에 해당하는지 정확히 판단해주세요
+- 평균적인 문장 길이를 추정해주세요 (단어 수 기준)
+- 사용자의 개인적인 표현 습관을 파악해주세요
+
+**문체 판단 기준:**
+- 격식체(formal): "입니다", "습니다", "하였습니다", "따라서", "그러므로" 등 존댓말 사용
+- 반말체(casual): "야", "어", "지", "네", "구나", "그냥", "진짜", "완전" 등 반말 사용
+- 학술체(academic): "연구", "분석", "결과", "데이터", "실험", "가설", "이론", "모델" 등 학술적 표현 사용
+
+**사용자 노트 내용:**
+${userText}
+
+**분석 결과:**
+자주 사용하는 표현: [자주 사용되는 표현들을 쉼표로 구분하여 나열]
+문체: [formal/casual/academic 중 하나]
+평균 길이: [평균 문장 길이 숫자]`
+}
+
