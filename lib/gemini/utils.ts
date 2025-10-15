@@ -121,7 +121,8 @@ export function getTimeout(): number {
  * 쉼표로 구분된 문자열을 배열로 변환하고 정규화합니다
  * 
  * @param text - 파싱할 텍스트 (예: "태그1, 태그2, 태그3")
- * @returns 정규화된 태그 배열 (최대 6개)
+ * @param maxCount - 최대 태그 개수 (기본값: 6)
+ * @returns 정규화된 태그 배열
  * 
  * @example
  * ```typescript
@@ -129,7 +130,7 @@ export function getTimeout(): number {
  * // ['개발', 'javascript', 'react']
  * ```
  */
-export function parseTagsFromText(text: string): string[] {
+export function parseTagsFromText(text: string, maxCount: number = 6): string[] {
   if (!text || text.trim().length === 0) {
     return []
   }
@@ -139,6 +140,6 @@ export function parseTagsFromText(text: string): string[] {
     .map((tag) => tag.trim().toLowerCase()) // 공백 제거 및 소문자 변환
     .filter((tag) => tag.length > 0) // 빈 태그 제거
     .filter((tag, index, self) => self.indexOf(tag) === index) // 중복 제거
-    .slice(0, 6) // 최대 6개
+    .slice(0, maxCount) // 최대 개수 제한
 }
 
