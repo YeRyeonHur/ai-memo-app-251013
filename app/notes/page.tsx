@@ -23,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Home } from 'lucide-react'
 
 interface PageProps {
   searchParams: Promise<{ page?: string; sort?: string }>
@@ -102,7 +103,21 @@ export default async function NotesPage({ searchParams }: PageProps) {
       <div className="container mx-auto px-4 py-8">
         {/* 헤더 영역 */}
         <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/">
+                    <Button variant="ghost" size="icon" className="h-10 w-10">
+                      <Home className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>홈으로</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <div>
               <h1 className="text-3xl font-bold mb-2">내 노트 📝</h1>
               <div className="flex items-center gap-2">
